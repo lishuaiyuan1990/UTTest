@@ -2,10 +2,7 @@ from ctypes import *
 class POINT(Structure):
     _fields_ = [("x", c_int),
                 ("y", c_int)]
-
-
-
-
+                
 class PCI_MEMORY(Structure):
     _fields_ = [("UserAddr", c_uint32), ("PhysicalAddr", c_void_p), 
                     ("Size", c_uint32)]    
@@ -40,31 +37,6 @@ class PLX_INTR(Structure):
                 ("IopRefresh", c_uint, 1),("PciINTApin", c_uint, 1), ("IopINTIpin", c_uint, 1),("TargetAbort", c_uint, 1),("Ch1Abort", c_uint, 1),\
                 ("Ch0Abort", c_uint, 1),("DMAbort", c_uint, 1),("IopToPciInt_2", c_uint, 1),("SwInterrupt", c_uint, 1),("DmaChannel3", c_uint, 1),("Reserved", c_uint, 16)]
 
-"""
-union
-    {
-        U32      UserVa;                // User space virtual address
-        U32      PciAddrLow;            // Lower 32-bits of PCI address
-        U32      SourceAddr;            // For 480 Local->Local
-    } u;
-    
-    union
-        {
-            U32      UserVa;                // User space virtual address
-            U32      PciAddrLow;            // Lower 32-bits of PCI address
-            U32      SourceAddr;            // For 480 Local->Local
-        } u;
-        U32          PciAddrHigh;           // Upper 32-bits of PCI address
-        U32          LocalAddr;             // Local bus address
-        U32          DestAddr;              // For 480 Local->Local
-        U32          TransferCount;         // Number of bytes to transfer
-        U32          NextSglPtr;            // Address of next SGL descriptor
-        unsigned int PciSglLoc         :1;  // DMA flags
-        unsigned int LastSglElement    :1;
-        unsigned int TerminalCountIntr :1;
-        unsigned int LocalToPciDma     :1;
-"""
-
 class DMA_UNION(Union):
     _fields_ = [("UserVa", c_uint32), ("PciAddrLow", c_uint32), ("SourceAddr", c_uint32)]
     
@@ -72,12 +44,12 @@ class DMA_TRANSFER_ELEMENT(Structure):
     _fields_ = [("u", DMA_UNION),("PciAddrHigh", c_uint32), ("LocalAddr", c_uint32),("DestAddr", c_uint32),\
                 ("TransferCount", c_uint32),("NextSglPtr", c_uint32),("PciSglLoc", c_uint, 1),\
                 ("LastSglElement", c_uint, 1),("TerminalCountIntr", c_uint, 1),("LocalToPciDma", c_uint, 1)]
+
 #DMA_CHANNEL_DESC.DmaStopTransferMode
 AssertBLAST = (0)
 #DMA_CHANNEL_PRIORITY
 Channel0Highest,Channel1Highest,Channel2Highest,Channel3Highest,Rotational = map(lambda x: c_uint(x), range(0, 5)) 
 #DMA_CHANNEL
 IopChannel0, IopChannel1, IopChannel2, PrimaryPciChannel0, PrimaryPciChannel1, PrimaryPciChannel2, PrimaryPciChannel3 = map(lambda x: c_int(x), range(0, 7))
-
+#A-Scan Length
 DATALENGTH = 1000
-ADDELAY_OFFSET = 0x2000

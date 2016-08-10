@@ -5,17 +5,16 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as Naviga
 from matplotlib.figure import Figure
 import numpy as np
 #from matplotlib.dates import date2num,  MinuteLocator,  SecondLocator,  DateFormatter
+#from pci import *
 from pci import *
 
-
-X_INTERAL = 1
+X_INTERVAL = 1
 Y_MAX = 100
 Y_MIN = -100
 X_MIN = 0
 X_MAX = 1000
 X_TICKS = 11
 
-INTERVAL = 1
 class MplCanvas(FigureCanvas):
     def __init__(self):
         self.fig = Figure()
@@ -54,7 +53,7 @@ class MplCanvasWraper(QtGui.QWidget):
         self.setLayout(self.vbl)
         self.dataX = []
         self.dataY = []
-        DmaSglChannelOpen()
+        openDevice()
         self.timer = QtCore.QBasicTimer()
         self.timer.start(500,  self)
         #self.initDataGenerator()
@@ -70,15 +69,13 @@ class MplCanvasWraper(QtGui.QWidget):
         self.__generating = False
         pass
         
-
     def releasePlot(self):
-
          self.__exit  = True
 
     def draw(self):
-        newdata = ADData()
+        newdata = collectData()
         self.ydata = newdata
-        self.xdata = range(X_MIN, X_MAX, X_INTERAL)
+        self.xdata = range(X_MIN, X_MAX, X_INTERVAL)
         self.canvas.plot(self.xdata, self.ydata)
         
         

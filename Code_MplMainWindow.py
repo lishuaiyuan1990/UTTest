@@ -1,4 +1,4 @@
-from PyQt4 import QtGui,  QtCore
+from PyQt4 import QtGui, QtCore
 from pci import *
 import sys
 print sys.path
@@ -10,7 +10,7 @@ class Code_MainWindow(Ui_MainWindow):
         self.setupUi(self)
         self.m_dsbDelay.valueChanged.connect(self.setDelay)
     def setDelay(self, value):
-        WriteBar(ADDELAY_OFFSET, value)
+        writeBar(ADDELAY_OFFSET, value)
         print "setDelay: %f" % value
         
     def closeEvent(self,  event):
