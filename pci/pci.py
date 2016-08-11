@@ -19,10 +19,10 @@ def OpenDevice():
     pKey.SerialNumber[0] = c_ubyte(0)
     hDevice = c_ulong()
     rc = pciDll.PlxPciDeviceFind(pointer(pKey), byref(deviceNum))
-    print "PlxPciDeviceFind: %x" % rc
+    #print "PlxPciDeviceFind: %x" % rc
     rc = pciDll.PlxPciDeviceOpen(byref(pKey), byref(hDevice))
-    print "PlxPciDeviceOpen: %x" % rc
-    print "hDevice: %x"% hDevice.value
+    #print "PlxPciDeviceOpen: %x" % rc
+    #print "hDevice: %x"% hDevice.value
     return hDevice
 
 def DmaSglChannelOpen():
@@ -42,22 +42,22 @@ def DmaSglChannelOpen():
     DmaDesc.IopBusWidth              = (2); # 32-bit
     DmaDesc.DmaChannelPriority       = Rotational;    
     rc = pciDll.PlxDmaSglChannelOpen(hDevice,PrimaryPciChannel0,byref(DmaDesc))
-    print "PlxDmaSglChannelOpen: %x" % rc
+    #print "PlxDmaSglChannelOpen: %x" % rc
 
 def initIntr():
     hDevice = hDeviceList[0]
     PlxInterrupt = PLX_INTR()
     #memset(pointer(PlxInterrupt), 0, sizeof(PLX_INTR))    
     rc = pciDll.PlxIntrStatusGet(hDevice, byref(PlxInterrupt));
-    print "PlxIntrStatusGet: %x" % rc
+    #print "PlxIntrStatusGet: %x" % rc
     hInterruptEvent = c_int()
     PlxInterrupt.PciDmaChannel0 = (1) # PCI DMA Channel 0
     PlxInterrupt.PciMainInt = (1)
     PlxInterrupt.IopToPciInt = (1) # Messaging Unit Inbound Post    
     rc = pciDll.PlxIntrAttach(hDevice, PlxInterrupt, byref(hInterruptEvent))
-    print "PlxIntrAttach: %x" % rc
+    #print "PlxIntrAttach: %x" % rc
     rc = pciDll.PlxIntrEnable(hDevice, byref(PlxInterrupt))
-    print "PlxIntrEnable: %x" % rc
+    #print "PlxIntrEnable: %x" % rc
 
 def DmaSglTransfer():
     hDevice = hDeviceList[0]
@@ -72,7 +72,7 @@ def DmaSglTransfer():
     DmaData.LastSglElement= (1)
     
     rc = pciDll.PlxDmaSglTransfer(hDevice, PrimaryPciChannel0, pointer(DmaData), c_uint32(0));
-    print "PlxDmaSglTransfer: %x" % rc
+    #print "PlxDmaSglTransfer: %x" % rc
     return buffer
     
 def WriteBar(offset, value):

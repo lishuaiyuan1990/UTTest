@@ -35,7 +35,6 @@ class MplCanvas(FigureCanvas):
             self.curveObj,  = self.ax.plot(np.array(datax),  np.array(datay),  '#EEEE00')
         else:
             self.curveObj.set_data(np.array(datax),  np.array(datay))
-            #self.ax.set_xlim(datax[0],  datax[-1])
         ticklabels = self.ax.xaxis.get_ticklabels()
         for tick in ticklabels:
             tick.set_rotation(25)
