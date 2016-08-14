@@ -6,14 +6,11 @@ from pci import *
 import sys
 print sys.path
 
-
 MAX_GATE_NUM = 6
 COLORLIST = ["001", "010", "100"]#, "011", "110", "101"]
 GATEDIC = ["m_color", "m_start", "m_len", "m_threshold"]
 from Ui_MplMainWindow import Ui_MainWindow
-from mplcanvaswraper import Gate
-import gatetablewidget 
-from gatetablewidget import GateTableWidgetItem
+from widget.gatetablewidget import GateTableWidgetItem, Gate
 
 class Code_MainWindow(Ui_MainWindow):
     def __init__(self,  parent = None):
@@ -31,6 +28,12 @@ class Code_MainWindow(Ui_MainWindow):
         self.currentRow = -1
         self.currentCol = -1
         self.m_clickMark = False
+        self.setDelay(0)
+        
+        step = QPoint(1, 1)
+        posFrom = QPoint(0, 0)
+        posTo = QPoint(100, 100)
+        self.m_cscanWidget.setScanPos(posFrom, posTo, step)
     
     def setClickMark(self):
         self.m_clickMark = True
@@ -73,10 +76,10 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_clickMark = False
 
     def addGate(self):
-        self.m_gateTable.itemChanged.disconnect(self.syncGateInfo)
         gate = self.genGate()
         if not gate:
             return None
+        self.m_gateTable.itemChanged.disconnect(self.syncGateInfo)
         self.m_gateSet.append(gate)
         self.m_colorSet.append(gate.m_color)
         self.m_gateTable.setRowCount(self.m_gateTable.rowCount() + 1)
@@ -115,6 +118,7 @@ class Code_MainWindow(Ui_MainWindow):
         return gate
     def setDelay(self, value):
         writeBar(ADDELAY_OFFSET, value)
+        self.m_mplCanvas.syncADDelay(value)
         print "setDelay: %f" % value
         
     def closeEvent(self,  event):

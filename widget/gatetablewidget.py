@@ -4,6 +4,17 @@ from PyQt4 import QtGui
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
+class Gate(object):
+    def __init__(self, color = QColor(255, 0, 0), start = 0.0, len = 1.0, threshold = 30.0):
+        self.m_color = color
+        self.m_start = start
+        self.m_len = len
+        self.m_threshold = threshold
+    def reset(self):
+        self.m_start = 0
+        self.m_len = 0
+        self.m_threshold = 0
+
 class GateTableWidgetItem(QTableWidgetItem):
     def __init__(self, parent):
         QTableWidgetItem.__init__(self)

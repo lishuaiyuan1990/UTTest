@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>665</width>
-    <height>675</height>
+    <width>1382</width>
+    <height>625</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -26,7 +26,7 @@
       <x>9</x>
       <y>9</y>
       <width>641</width>
-      <height>511</height>
+      <height>441</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -92,9 +92,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>530</y>
+      <y>460</y>
       <width>641</width>
-      <height>131</height>
+      <height>151</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -152,6 +152,16 @@
      </item>
     </layout>
    </widget>
+   <widget class="MplCanvasCWraper" name="m_cscanWidget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>670</x>
+      <y>10</y>
+      <width>691</width>
+      <height>601</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
  </widget>
  <customwidgets>
@@ -165,6 +175,12 @@
    <class>GateTableWidget</class>
    <extends>QTableWidget</extends>
    <header>gatetablewidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MplCanvasCWraper</class>
+   <extends>QWidget</extends>
+   <header>mplcanvaswraper.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

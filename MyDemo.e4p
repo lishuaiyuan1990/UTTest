@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-5.1.dtd">
 <!-- eric project file for project MyDemo -->
-<!-- Saved: 2016-08-13, 19:51:44 -->
+<!-- Saved: 2016-08-14, 12:45:43 -->
 <!-- Copyright (C) 2016 ,  -->
 <Project version="5.1">
   <Language>en_US</Language>
@@ -17,12 +17,13 @@
     <Source>Code_MplMainWindow.py</Source>
     <Source>Ui_MplMainWindow.py</Source>
     <Source>__init__.py</Source>
-    <Source>gatetablewidget.py</Source>
     <Source>main.py</Source>
-    <Source>mplcanvaswraper.py</Source>
     <Source>pci/__init__.py</Source>
     <Source>pci/pci.py</Source>
     <Source>pci/pcitypes.py</Source>
+    <Source>widget/__init__.py</Source>
+    <Source>widget/gatetablewidget.py</Source>
+    <Source>widget/mplcanvaswraper.py</Source>
   </Sources>
   <Forms>
     <Form>MplMainWindow.ui</Form>

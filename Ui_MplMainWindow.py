@@ -5,10 +5,11 @@
 # Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
+from widget.gatetablewidget import GateTableWidget
+from widget.mplcanvaswraper import MplCanvasCWraper, MplCanvasWraper
 
 from PyQt4 import QtCore, QtGui
-from gatetablewidget import GateTableWidget
-from mplcanvaswraper import MplCanvasWraper
+
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
@@ -26,7 +27,7 @@ except AttributeError:
 class Ui_MainWindow(QtGui.QMainWindow):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(665, 675)
+        MainWindow.resize(1382, 625)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -35,7 +36,7 @@ class Ui_MainWindow(QtGui.QMainWindow):
         self.centralWidget = QtGui.QWidget(MainWindow)
         self.centralWidget.setObjectName(_fromUtf8("centralWidget"))
         self.layoutWidget = QtGui.QWidget(self.centralWidget)
-        self.layoutWidget.setGeometry(QtCore.QRect(9, 9, 641, 511))
+        self.layoutWidget.setGeometry(QtCore.QRect(9, 9, 641, 441))
         self.layoutWidget.setObjectName(_fromUtf8("layoutWidget"))
         self.verticalLayout = QtGui.QVBoxLayout(self.layoutWidget)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
@@ -68,13 +69,13 @@ class Ui_MainWindow(QtGui.QMainWindow):
         self.horizontalLayout_2.addItem(spacerItem)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.layoutWidget1 = QtGui.QWidget(self.centralWidget)
-        self.layoutWidget1.setGeometry(QtCore.QRect(10, 530, 641, 131))
+        self.layoutWidget1.setGeometry(QtCore.QRect(10, 460, 641, 151))
         self.layoutWidget1.setObjectName(_fromUtf8("layoutWidget1"))
         self.horizontalLayout_3 = QtGui.QHBoxLayout(self.layoutWidget1)
         self.horizontalLayout_3.setObjectName(_fromUtf8("horizontalLayout_3"))
         self.m_gateTable = GateTableWidget(self.layoutWidget1)
         self.m_gateTable.setMouseTracking(False)
-        self.m_gateTable.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.m_gateTable.setFocusPolicy(QtCore.Qt.WheelFocus)
         self.m_gateTable.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
         self.m_gateTable.setRowCount(0)
         self.m_gateTable.setColumnCount(5)
@@ -95,6 +96,9 @@ class Ui_MainWindow(QtGui.QMainWindow):
         self.m_rmGateBtn.setObjectName(_fromUtf8("m_rmGateBtn"))
         self.verticalLayout_2.addWidget(self.m_rmGateBtn)
         self.horizontalLayout_3.addLayout(self.verticalLayout_2)
+        self.m_cscanWidget = MplCanvasCWraper(self.centralWidget)
+        self.m_cscanWidget.setGeometry(QtCore.QRect(670, 10, 691, 601))
+        self.m_cscanWidget.setObjectName(_fromUtf8("m_cscanWidget"))
         MainWindow.setCentralWidget(self.centralWidget)
 
         self.retranslateUi(MainWindow)
@@ -105,7 +109,6 @@ class Ui_MainWindow(QtGui.QMainWindow):
         self.label.setText(_translate("MainWindow", "延迟(us)", None))
         self.m_addGateBtn.setText(_translate("MainWindow", "添加闸门", None))
         self.m_rmGateBtn.setText(_translate("MainWindow", "删除闸门", None))
-
 
 
 if __name__ == "__main__":
