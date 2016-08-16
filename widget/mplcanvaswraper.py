@@ -86,7 +86,7 @@ class MplCanvasWraper(QtGui.QWidget):
         self.dataY = []
         openDevice()
         self.timer = QtCore.QBasicTimer()
-        #self.timer.start(500,  self)
+        self.timer.start(500,  self)
         self.m_xStart = X_MIN
         self.m_xEnd = X_MAX
         #self.initDataGenerator()
@@ -182,7 +182,8 @@ class MplCanvasCWraper(QWidget):
         self.imgObj = None
         self.axes = self.fig.add_subplot(111)
         self.timer = QtCore.QBasicTimer()
-        self.timer.start(500, self)
+        #self.timer.start(500, self)
+        self.colorBarMark = False
         
     def initAxis(self, xaxis, yaxis):
         self.axes.set_xlim(xaxis.x(),  xaxis.y())
@@ -226,7 +227,9 @@ class MplCanvasCWraper(QWidget):
                          extent = [x.min(), x.max(), y.min(), y.max()], \
                          interpolation = 'nearest', origin= 'lower')
         self.canvas.draw()
-        #self.fig.colorbar(self.imgObj)
+        if not self.colorBarMark:
+            self.fig.colorbar(self.imgObj)
+            self.colorBarMark = True
         
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
