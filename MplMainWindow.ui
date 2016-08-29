@@ -72,6 +72,18 @@
         </layout>
        </item>
        <item>
+        <widget class="QPushButton" name="m_probePara">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>探头性能分析</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <spacer name="horizontalSpacer">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>

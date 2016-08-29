@@ -89,6 +89,7 @@ class MplCanvasWraper(QtGui.QWidget):
         self.timer.start(500,  self)
         self.m_xStart = X_MIN
         self.m_xEnd = X_MAX
+        self.m_rawData = None
         #self.initDataGenerator()
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
@@ -101,16 +102,15 @@ class MplCanvasWraper(QtGui.QWidget):
     def pausePlot(self):
         self.__generating = False
         pass
-        
     def releasePlot(self):
          self.__exit  = True
 
     def draw(self):
-        newdata = collectData()
-        self.ydata = newdata
+        self.m_rawData = collectData()
+        self.ydata = self.m_rawData
         self.xdata = np.linspace(self.m_xStart, self.m_xEnd, 1000)
         #self.xdata = range(X_MIN / x_resolution, X_MAX / x_resolution, X_INTERVAL/x_resolution)
-        print len(self.ydata), len(self.xdata)
+        #print len(self.ydata), len(self.xdata)
         self.canvas.plot(self.xdata, self.ydata)
     def syncADDelay(self, delay):
         self.canvas.setADDelay(delay)
@@ -122,51 +122,7 @@ class MplCanvasWraper(QtGui.QWidget):
         
     def resetGate(self, gate):
         self.canvas.resetGate(gate)
-
-class MplCanvasC(FigureCanvas):
-    def __init__(self):
-        self.TEST_CLOCK = 1
-        self.fig = Figure((100, 100))
-        self.fig.clear()
-        FigureCanvas.__init__(self, self.fig)
-        self.ax = self.fig.add_subplot(111)#, axisbg = '#838B83')
-        FigureCanvas.setSizePolicy(self, QtGui.QSizePolicy.Expanding,  QtGui.QSizePolicy.Expanding)
-        FigureCanvas.updateGeometry(self)
-        print self.ax.set_xlabel("time ms", labelpad = -15)
-        self.ax.set_ylabel("pos")
-        #self.ax.set_xticks(np.round(np.linspace(X_MIN,  X_MAX,  X_TICKS), 2))
-        self.imgObj = None
-        self.img = None
-    def initAxis(self, xaxis, yaxis, tick):
-        self.ax.set_xlim(xaxis.x(),  xaxis.y())
-        self.ax.set_ylim(yaxis.x(),  yaxis.y())
-        self.ax.set_xticks(np.round(np.linspace(xaxis.x(),  xaxis.y(),  10), 2))
-        self.ax.set_yticks(np.round(np.linspace(yaxis.x(),  yaxis.y(),  10), 2))
-        pass
         
-    def plot(self, x, y, z):
-        
-        #self.ax.set_xlim(x.min(), x.max())
-        #self.ax.set_ylim(y.min(), y.max())
-        #z_max, z_min = np.abs(z).max(), np.abs(z).min()
-        z_max, z_min = Y_MAX, 0
-        self.fig.clear()
-        cax = self.ax.imshow(z)
-        #cax = self.ax.imshow(z, vmin = z_min, vmax = z_max, \
-        #                     extent = [x.min(), x.max(), y.min(), y.max()], \
-        #                     interpolation = 'nearest', origin= 'lower')
-        if self.img:
-            del self.img
-        self.img = cax
-        self.fig.colorbar(cax)
-        #print "self.ax.imshow"
-        #ticklabels = self.ax.xaxis.get_ticklabels()
-        #for tick in ticklabels:
-        #for tick in ticklabels:
-        #    tick.set_rotation(25)
-        self.draw()
-
-
 class MplCanvasCWraper(QWidget):
     def __init__(self, parent):
         self.TEST_CLOCK = 1
@@ -234,6 +190,65 @@ class MplCanvasCWraper(QWidget):
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
             self.drawImg()
+        else:
+            QtGui.QWidget.timerEvent(self, event)
+
+class MplCanvasProbeWraper(QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        self.fig = Figure()
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setParent(self)
+        self.axes = self.fig.add_subplot(111, axisbg = '#838B83')
+        self.axes.grid(True, color = 'w')
+        self.axes.set_xlabel("MHz", labelpad = -4)
+        self.axes.set_ylabel("Amp")
+        self.curveObj = None
+        self.vbl = QVBoxLayout()
+        self.ntb = NavigationToolbar(self.canvas, parent)
+        self.vbl.addWidget(self.ntb)
+        self.vbl.addWidget(self.canvas)
+        self.setLayout(self.vbl)
+        self.timer = QtCore.QBasicTimer()
+        self.m_fs = 100 
+        self.m_rawData = None
+        self.m_rawDataMark = False
+        self.axes.set_xlim(0, self.m_fs / 2.0)
+        self.axes.set_ylim(-100, 100)
+        self.axes.set_xticks(np.round(np.linspace(0, self.m_fs / 2.0,  8), 2))
+        self.axes.set_yticks(np.round(np.linspace(-100, 100,  8), 2))
+        self.timer.start(500, self)
+        
+    def setData(self, data):
+        self.m_rawData = data
+        self.m_rawDataMark = True        
+        
+    def genData(self):
+        if not self.m_rawDataMark:
+            return [None, None]
+        else:
+            self.m_rawDataMark = False
+        N = len(self.m_rawData)
+        n = np.linspace(0, N - 1, N)
+        datax = n / N * self.m_fs
+        datay = np.abs(np.fft.fft(self.m_rawData))
+        self.m_fftData = datay[0:len(datay)/2]
+        return [datax[0:len(datax)/2], datay[0:len(datay)/2]]
+        
+    def plotFFT(self):
+        datax, datay = self.genData()
+        #datay = np.random.random(size=1000) * 100
+        #datax = np.linspace(0, 10, 1000)
+        if datax is None or datay is None:
+            return
+        if self.curveObj is None:
+            self.curveObj,  = self.axes.plot(np.array(datax), np.array(datay),  '#EEEE00')
+        else:
+            self.curveObj.set_data(np.array(datax),  np.array(datay))
+        self.canvas.draw()
+    def timerEvent(self, event):
+        if event.timerId() == self.timer.timerId():
+            self.plotFFT()
         else:
             QtGui.QWidget.timerEvent(self, event)
     

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-5.1.dtd">
 <!-- eric project file for project MyDemo -->
-<!-- Saved: 2016-08-14, 12:45:43 -->
+<!-- Saved: 2016-08-27, 22:04:33 -->
 <!-- Copyright (C) 2016 ,  -->
 <Project version="5.1">
   <Language>en_US</Language>
@@ -16,6 +16,7 @@
   <Sources>
     <Source>Code_MplMainWindow.py</Source>
     <Source>Ui_MplMainWindow.py</Source>
+    <Source>Ui_ProbePara.py</Source>
     <Source>__init__.py</Source>
     <Source>main.py</Source>
     <Source>pci/__init__.py</Source>
@@ -27,6 +28,7 @@
   </Sources>
   <Forms>
     <Form>MplMainWindow.ui</Form>
+    <Form>ProbePara.ui</Form>
   </Forms>
   <Translations/>
   <Resources/>

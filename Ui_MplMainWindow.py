@@ -5,10 +5,10 @@
 # Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
-from widget.gatetablewidget import GateTableWidget
-from widget.mplcanvaswraper import MplCanvasCWraper, MplCanvasWraper
 
 from PyQt4 import QtCore, QtGui
+from widget.gatetablewidget import GateTableWidget
+from widget.mplcanvaswraper import MplCanvasCWraper, MplCanvasWraper
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -65,6 +65,12 @@ class Ui_MainWindow(QtGui.QMainWindow):
         self.m_dsbDelay.setObjectName(_fromUtf8("m_dsbDelay"))
         self.horizontalLayout.addWidget(self.m_dsbDelay)
         self.horizontalLayout_2.addLayout(self.horizontalLayout)
+        self.m_probePara = QtGui.QPushButton(self.layoutWidget)
+        font = QtGui.QFont()
+        font.setPointSize(14)
+        self.m_probePara.setFont(font)
+        self.m_probePara.setObjectName(_fromUtf8("m_probePara"))
+        self.horizontalLayout_2.addWidget(self.m_probePara)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
@@ -107,8 +113,10 @@ class Ui_MainWindow(QtGui.QMainWindow):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
         self.label.setText(_translate("MainWindow", "延迟(us)", None))
+        self.m_probePara.setText(_translate("MainWindow", "探头性能分析", None))
         self.m_addGateBtn.setText(_translate("MainWindow", "添加闸门", None))
         self.m_rmGateBtn.setText(_translate("MainWindow", "删除闸门", None))
+
 
 
 if __name__ == "__main__":
