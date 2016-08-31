@@ -21,11 +21,16 @@ class ProbeParaDialog(Ui_Dialog):
         self.m_freqStart = 0
         self.m_freqTo = 0
         self.m_ampResolution = 0.1
-        
+        self.m_fftCurve.toggled.connect(self.syncWidgetCurve)
         self.m_maxAmp = 0
         self.m_adDelay = 0
         self.m_fs = 100
-    
+    def setADDelay(self, delay):
+        self.m_adDelay = delay
+        self.widget.setADDelay(self.m_adDelay)
+
+    def syncWidgetCurve(self, checked):
+        self.widget.setCurve(checked)
     def closeEvent(self,  event):
         self.exist = False
         self.widget.timer.stop()
@@ -36,6 +41,9 @@ class ProbeParaDialog(Ui_Dialog):
         N = len(self.widget.m_rawData)
         n = float(f) * N / self.widget.m_fs
         n = round(n)
+        return n
+    def parseTime(self, t):
+        n = (t - self.m_adDelay) * m_fs
         return n
     def findFreqAmpIndex(self, ampBydB, rangeFrom, rangeTo):
         lowFreq = [100, 0]
@@ -97,9 +105,47 @@ class ProbeParaDialog(Ui_Dialog):
         high = self.m_highFreqBy20[0]
         low = self.m_lowFreqBy20[0]
         return [low, high]
-    
+    def setTimeAndFreqRange(self):
+        self.m_calSeqFrom = self.m_fromFreq.value()
+        self.m_calSeqTo = self.m_toFreq.value()
+        self.m_calTimeFrom = self.m_fromTime.value()
+        self.m_calTimeTo = self.m_toTime.value()
     def calVPP(self, timeFrom, timeTo):
-        pass
+        nfrom = self.parseTime(timeFrom)
+        nto = self.parseTime(timeTo)
+        vmin = 100
+        minIndex = -1
+        vmax = -100
+        maxIndex = -1
+        for index in range(nfrom, nto):
+            if self.widget.m_rawData[index] < vmin:
+                vmin = self.widget.m_rawData[index]
+                minIndex = index
+            if self.widget.m_rawData[index] > vmax:
+                vmax = self.widget.m_rawData[index]
+                maxIndex = index
+        self.m_ampMax = [vmax, maxIndex]
+        self.m_ampMin = [vmin, minIndex]
+        self.m_vpp = vmax - vmin
+        return self.m_vpp
+    def findTimeAmpIndex(self, uniAmp, rangeFrom, rangeTo):
+        retIndex = rangeFrom
+        step = 1
+        if rangeFrom > rangeTo:
+            step = -1
+        for index in range(rangeFrom, rangeTo, step):
+            if abs(self.widget.m_rawData[index]) > abs(uniAmp):
+                retIndex = index
+        return retIndex
+    def calPluseWidth(self, timeFrom, timeTo):
+        nfrom = self.parseTime(timeFrom)
+        nto = self.parseTime(timeTo)
+        uniAmp = self.m_vpp * 0.1
+        maxIndex = self.m_ampMax[1]
+        nStart = self.findTimeAmpIndex(uniAmp, maxIndex, nfrom)
+        nEnd = self.findTimeAmpIndex(uniAmp, maxIndex, nto)
+        timeWidth = float(nEnd - nStart) / self.m_fs
+        return timeWidth
         
             
 class Code_MainWindow(Ui_MainWindow):
@@ -125,7 +171,7 @@ class Code_MainWindow(Ui_MainWindow):
         posTo = QPoint(100, 100)
         self.m_cscanWidget.setScanPos(posFrom, posTo, step)
         self.timer = QtCore.QBasicTimer()
-                
+    
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
             if self.m_probeDialog.exist:
@@ -139,6 +185,7 @@ class Code_MainWindow(Ui_MainWindow):
     def fftParse(self):
         self.timer.start(500, self)
         self.m_probeDialog = ProbeParaDialog(self)
+        self.m_probeDialog.setADDelay(self.m_adDelay)
         self.m_probeDialog.widget.setData(self.m_mplCanvas.m_rawData)
         self.m_probeDialog.show()
         
@@ -226,6 +273,7 @@ class Code_MainWindow(Ui_MainWindow):
     def setDelay(self, value):
         writeBar(ADDELAY_OFFSET, value)
         self.m_mplCanvas.syncADDelay(value)
+        self.m_adDelay = value
         print "setDelay: %f" % value
         
     def closeEvent(self,  event):

@@ -201,7 +201,6 @@ class MplCanvasProbeWraper(QWidget):
         self.canvas.setParent(self)
         self.axes = self.fig.add_subplot(111, axisbg = '#838B83')
         self.axes.grid(True, color = 'w')
-        self.axes.set_xlabel("MHz", labelpad = -4)
         self.axes.set_ylabel("Amp")
         self.curveObj = None
         self.vbl = QVBoxLayout()
@@ -211,19 +210,57 @@ class MplCanvasProbeWraper(QWidget):
         self.setLayout(self.vbl)
         self.timer = QtCore.QBasicTimer()
         self.m_fs = 100 
+        self.m_adDelay = 0
         self.m_rawData = None
+        self.m_isFFT = False
         self.m_rawDataMark = False
-        self.axes.set_xlim(0, self.m_fs / 2.0)
         self.axes.set_ylim(-100, 100)
-        self.axes.set_xticks(np.round(np.linspace(0, self.m_fs / 2.0,  8), 2))
         self.axes.set_yticks(np.round(np.linspace(-100, 100,  8), 2))
         self.timer.start(500, self)
+    
+    def setADDelay(self, delay):
+        self.m_adDelay = delay
+        self.rawAxis()
+    def setCurve(self, isFFT):
+        self.m_isFFT = isFFT
+        if self.m_isFFT:
+            self.fftAxis()
+        else:
+            self.rawAxis()
         
     def setData(self, data):
         self.m_rawData = data
-        self.m_rawDataMark = True        
+        self.m_rawDataMark = True
         
+    def rawAxis(self):
+        self.m_isFFT = False
+        start = self.m_adDelay
+        end = self.m_adDelay + X_INTERVAL * x_len
+        self.axes.set_xlabel("ms", labelpad = -4)
+        self.axes.set_xlim(start, end)
+        self.axes.set_xticks(np.round(np.linspace(start, end,  X_TICKS), 2))
+        
+    def fftAxis(self):
+        self.m_isFFT = True
+        self.axes.set_xlabel("MHz", labelpad = -4)
+        self.axes.set_xlim(0, self.m_fs / 2.0)
+        self.axes.set_xticks(np.round(np.linspace(0, self.m_fs / 2.0,  8), 2))
     def genData(self):
+        if self.m_isFFT:
+            return self.genFFTData()
+        else:
+            return self.genRawData()
+    def genRawData(self):
+        start = self.m_adDelay
+        end = self.m_adDelay + X_INTERVAL * x_len
+        xdata = np.linspace(start, end, 1000)
+        return [xdata, self.m_rawData]
+    def syncADDelay(self, delay):
+        self.canvas.setADDelay(delay)
+        self.m_xStart = delay
+        self.m_xEnd = delay + X_INTERVAL * x_len
+        
+    def genFFTData(self):
         if not self.m_rawDataMark:
             return [None, None]
         else:
@@ -237,8 +274,6 @@ class MplCanvasProbeWraper(QWidget):
         
     def plotFFT(self):
         datax, datay = self.genData()
-        #datay = np.random.random(size=1000) * 100
-        #datax = np.linspace(0, 10, 1000)
         if datax is None or datay is None:
             return
         if self.curveObj is None:
