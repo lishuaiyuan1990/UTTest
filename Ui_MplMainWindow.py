@@ -111,12 +111,11 @@ class Ui_MainWindow(QtGui.QMainWindow):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
+        MainWindow.setWindowTitle(_translate("MainWindow", "中国特种设备检测研究院", None))
         self.label.setText(_translate("MainWindow", "延迟(us)", None))
         self.m_probePara.setText(_translate("MainWindow", "探头性能分析", None))
         self.m_addGateBtn.setText(_translate("MainWindow", "添加闸门", None))
         self.m_rmGateBtn.setText(_translate("MainWindow", "删除闸门", None))
-
 
 
 if __name__ == "__main__":

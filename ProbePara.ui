@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>探头性能分析</string>
   </property>
   <property name="sizeGripEnabled">
    <bool>true</bool>
@@ -49,7 +49,7 @@
     <rect>
      <x>610</x>
      <y>10</y>
-     <width>343</width>
+     <width>361</width>
      <height>91</height>
     </rect>
    </property>
@@ -204,7 +204,7 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="6" column="1">
-     <widget class="QDoubleSpinBox" name="m_highFreqby20">
+     <widget class="QDoubleSpinBox" name="m_highFreqby20SpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>
@@ -225,7 +225,7 @@
      </widget>
     </item>
     <item row="4" column="1">
-     <widget class="QDoubleSpinBox" name="m_bwby20">
+     <widget class="QDoubleSpinBox" name="m_bwby20SpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>
@@ -234,7 +234,7 @@
      </widget>
     </item>
     <item row="1" column="1">
-     <widget class="QDoubleSpinBox" name="m_bwby6">
+     <widget class="QDoubleSpinBox" name="m_bwby6SpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>
@@ -243,7 +243,7 @@
      </widget>
     </item>
     <item row="2" column="1">
-     <widget class="QDoubleSpinBox" name="m_lowFreqby6">
+     <widget class="QDoubleSpinBox" name="m_lowFreqby6SpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>
@@ -288,7 +288,7 @@
      </widget>
     </item>
     <item row="5" column="1">
-     <widget class="QDoubleSpinBox" name="m_lowFreqby20">
+     <widget class="QDoubleSpinBox" name="m_lowFreqby20SpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>
@@ -309,7 +309,7 @@
      </widget>
     </item>
     <item row="0" column="1">
-     <widget class="QDoubleSpinBox" name="m_freqCenter">
+     <widget class="QDoubleSpinBox" name="m_freqCenterSpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>
@@ -330,7 +330,7 @@
      </widget>
     </item>
     <item row="3" column="1">
-     <widget class="QDoubleSpinBox" name="m_highFreqby6">
+     <widget class="QDoubleSpinBox" name="m_highFreqby6SpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>
@@ -363,7 +363,7 @@
      </widget>
     </item>
     <item row="7" column="1">
-     <widget class="QDoubleSpinBox" name="m_probeSense">
+     <widget class="QDoubleSpinBox" name="m_probeSenseSpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>
@@ -384,7 +384,7 @@
      </widget>
     </item>
     <item row="8" column="1">
-     <widget class="QDoubleSpinBox" name="m_bw">
+     <widget class="QDoubleSpinBox" name="m_bwSpinBox">
       <property name="font">
        <font>
         <pointsize>11</pointsize>

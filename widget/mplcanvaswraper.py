@@ -106,8 +106,9 @@ class MplCanvasWraper(QtGui.QWidget):
          self.__exit  = True
 
     def draw(self):
-        self.m_rawData = collectData()
-        self.ydata = self.m_rawData
+        self.m_rawData = np.array(collectData())
+        self.m_rawData = (self.m_rawData - 50) * 2
+        self.ydata = np.array(self.m_rawData)
         self.xdata = np.linspace(self.m_xStart, self.m_xEnd, 1000)
         #self.xdata = range(X_MIN / x_resolution, X_MAX / x_resolution, X_INTERVAL/x_resolution)
         #print len(self.ydata), len(self.xdata)
@@ -231,6 +232,10 @@ class MplCanvasProbeWraper(QWidget):
     def setData(self, data):
         self.m_rawData = data
         self.m_rawDataMark = True
+        datay = np.abs(np.fft.fft(self.m_rawData))
+        sign = max(datay)
+        datay = (datay / sign * 200 - 100)
+        self.m_fftData = datay[0:len(datay)/2]
         
     def rawAxis(self):
         self.m_isFFT = False
@@ -269,6 +274,8 @@ class MplCanvasProbeWraper(QWidget):
         n = np.linspace(0, N - 1, N)
         datax = n / N * self.m_fs
         datay = np.abs(np.fft.fft(self.m_rawData))
+        sign = max(datay)
+        datay = (datay / sign * 200 - 100)
         self.m_fftData = datay[0:len(datay)/2]
         return [datax[0:len(datax)/2], datay[0:len(datay)/2]]
         

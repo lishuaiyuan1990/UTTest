@@ -25,6 +25,27 @@ class ProbeParaDialog(Ui_Dialog):
         self.m_maxAmp = 0
         self.m_adDelay = 0
         self.m_fs = 100
+        self.m_calulateBtn.clicked.connect(self.calProbePara)
+    def calProbePara(self):
+        self.setTimeAndFreqRange()
+        self.getKeyAmp()
+        freq = self.calFreqCenter()
+        print freq
+        bWBy6 = self.calBWBy6()
+        bWBy20 = self.calBWBy20()
+        vpp = self.calVPP()
+        pluseWidth = self.calPluseWidth()
+        self.m_freqCenterSpinBox.setValue(freq)
+        self.m_bwby6SpinBox.setValue(bWBy6)
+        self.m_lowFreqby6SpinBox.setValue(self.m_lowFreqBy6[1])
+        self.m_highFreqby6SpinBox.setValue(self.m_highFreqBy6[1])
+        self.m_lowFreqby20SpinBox.setValue(self.m_lowFreqBy20[1])
+        self.m_highFreqby20SpinBox.setValue(self.m_highFreqBy20[1])
+        self.m_bwby20SpinBox.setValue(bWBy20)
+        self.m_probeSenseSpinBox.setValue(vpp)
+        self.m_bwSpinBox.setValue(pluseWidth)
+        
+        
     def setADDelay(self, delay):
         self.m_adDelay = delay
         self.widget.setADDelay(self.m_adDelay)
@@ -38,19 +59,25 @@ class ProbeParaDialog(Ui_Dialog):
     def parseFreq(self, f):
         f = min(f, self.widget.m_fs / 2.0)
         f = max(f, 0)
-        N = len(self.widget.m_rawData)
-        n = float(f) * N / self.widget.m_fs
+        N = len(self.widget.m_fftData)
+        n = float(f) * N / (self.widget.m_fs / 2.0)
         n = round(n)
-        return n
+        return int(n)
     def parseTime(self, t):
-        n = (t - self.m_adDelay) * m_fs
-        return n
+        n = (t - self.m_adDelay) * self.m_fs
+        return int(n)
+    def reverseFreq(self, n):
+        N = len(self.widget.m_fftData)
+        f = n * (self.widget.m_fs / 2.0) / N
+        f = min(f, self.widget.m_fs / 2.0)
+        f = max(f, 0)
+        return f
     def findFreqAmpIndex(self, ampBydB, rangeFrom, rangeTo):
         lowFreq = [100, 0]
         step = 1
         if rangeFrom > rangeTo:
             step = -1
-        for index in range(rangeFrom, rangeFrom, step):
+        for index in range(rangeFrom, rangeTo, step):
             if abs(self.widget.m_fftData[index] - ampBydB) < self.m_ampResolution:
                 lowFreq[0] = abs(self.widget.m_fftData[index] - ampBydB)
                 lowFreq[1] = index
@@ -59,7 +86,7 @@ class ProbeParaDialog(Ui_Dialog):
                 lowFreq[0] = abs(self.widget.m_fftData[index] - ampBydB)
                 lowFreq[1] = index
         index = lowFreq[1]
-        return [self.widget.m_fftData[index], index]
+        return [self.widget.m_fftData[index], self.reverseFreq(index)]
     def maxAmpIndex(self, nfrom, nto):
         maxAmp = [0, 0]
         for index in range(nfrom, nto):
@@ -67,7 +94,7 @@ class ProbeParaDialog(Ui_Dialog):
                 maxAmp[0] = self.widget.m_fftData[index]
                 maxAmp[1] = index
         return maxAmp
-    def getKeyAmp(self, nfrom, nto):
+    def getKeyAmp(self):
         nfrom = self.parseFreq(self.m_freqStart)
         nto = self.parseFreq(self.m_freqTo)
         if nfrom >= nto:
@@ -84,33 +111,31 @@ class ProbeParaDialog(Ui_Dialog):
         return True
         
     def calFreqCenter(self):
-        centerFreq = (self.m_lowFreqBy6[0] * self.m_highFreqBy6[0]) ** 0.5
+        lowFreq = self.m_lowFreqBy6[1]
+        highFreq = self.m_highFreqBy6[1]
+        centerFreq = (lowFreq * highFreq) ** 0.5
         self.m_centerFreq = centerFreq
         return centerFreq
     
     def calBWBy6(self):
         #[(fu-fl)/f0]×100%
-        bwBy6 = float(self.m_highFreqBy6[0] - self.m_lowFreqBy6[1]) / self.m_centerFreq
+        bwBy6 = float(self.m_highFreqBy6[1] - self.m_lowFreqBy6[1]) / self.m_centerFreq
         return bwBy6
-    def calLowAndHighFreqBy6(self):
-        high = self.m_highFreqBy6[0]
-        low = self.m_lowFreqBy6[0]
-        return [low, high]
     
     def calBWBy20(self):
         #[(fu-fl)/f0]×100%
-        bwBy20 = float(self.m_highFreqBy20[0] - self.m_lowFreqBy20[1]) / self.m_centerFreq
+        bwBy20 = float(self.m_highFreqBy20[1] - self.m_lowFreqBy20[1]) / self.m_centerFreq
         return bwBy20
-    def calLowAndHighFreqBy20(self):
-        high = self.m_highFreqBy20[0]
-        low = self.m_lowFreqBy20[0]
-        return [low, high]
+        
     def setTimeAndFreqRange(self):
-        self.m_calSeqFrom = self.m_fromFreq.value()
-        self.m_calSeqTo = self.m_toFreq.value()
+        self.m_freqStart = self.m_fromFreq.value()
+        self.m_freqTo = self.m_toFreq.value()
         self.m_calTimeFrom = self.m_fromTime.value()
         self.m_calTimeTo = self.m_toTime.value()
-    def calVPP(self, timeFrom, timeTo):
+        
+    def calVPP(self):
+        timeFrom = self.m_calTimeFrom
+        timeTo = self.m_calTimeTo
         nfrom = self.parseTime(timeFrom)
         nto = self.parseTime(timeTo)
         vmin = 100
@@ -137,7 +162,9 @@ class ProbeParaDialog(Ui_Dialog):
             if abs(self.widget.m_rawData[index]) > abs(uniAmp):
                 retIndex = index
         return retIndex
-    def calPluseWidth(self, timeFrom, timeTo):
+    def calPluseWidth(self):
+        timeFrom = self.m_calTimeFrom
+        timeTo = self.m_calTimeTo
         nfrom = self.parseTime(timeFrom)
         nto = self.parseTime(timeTo)
         uniAmp = self.m_vpp * 0.1
