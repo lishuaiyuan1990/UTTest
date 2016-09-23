@@ -4,7 +4,9 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from pci import *
 import sys
+import motor.motordriver as mdriver
 print sys.path
+
 
 MAX_GATE_NUM = 6
 COLORLIST = ["001", "010", "100"]#, "011", "110", "101"]
@@ -196,21 +198,27 @@ class Code_MainWindow(Ui_MainWindow):
         step = QPoint(1, 1)
         posFrom = QPoint(0, 0)
         posTo = QPoint(100, 100)
+        self.initMDriver()
         self.m_cscanWidget.setScanPos(posFrom, posTo, step)
         self.timer = QtCore.QBasicTimer()
+        self.initSgn()
+        self.m_probeDialog = None
+        self.timer.start(500, self)
     
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
-            if self.m_probeDialog.exist:
+            if self.m_probeDialog != None and self.m_probeDialog.exist:
                 self.m_probeDialog.widget.setData(self.m_mplCanvas.m_rawData)
             else:
-                self.timer.stop()
+                #self.timer.stop()
                 del self.m_probeDialog
+                self.m_probeDialog = None
                 print "timer Stop"
+            self.updateAxisPos()
         else:
             QtGui.QWidget.timerEvent(self, event)
     def fftParse(self):
-        self.timer.start(500, self)
+        #self.timer.start(500, self)
         self.m_probeDialog = ProbeParaDialog(self)
         self.m_probeDialog.setADDelay(self.m_adDelay)
         self.m_probeDialog.widget.setData(self.m_mplCanvas.m_rawData)
@@ -309,7 +317,64 @@ class Code_MainWindow(Ui_MainWindow):
         event.ignore()
         if result == QtGui.QMessageBox.Yes:
             event.accept()
-    
+    def updateAxisPos(self):
+        self.m_xAxisPos = self.getAxisPos(mdriver.XAxis)
+        self.m_yAxisPos = self.getAxisPos(mdriver.YAxis)
+        self.m_zAxisPos = self.getAxisPos(mdriver.ZAxis)
+        print self.m_xAxisPos
+        self.m_xPos.setText(QString.number(self.m_xAxisPos))
+        self.m_yPos.setText(QString.number(self.m_yAxisPos))
+        self.m_zPos.setText(QString.number(self.m_zAxisPos))
+    def initMDriver(self):
+        mdriver.initMotorCard()
+        self.preConfigAllAxisByDefault()
+    def getAxisPos(self, axis):
+        return mdriver.getPosition(axis)
+    def preConfigAllAxisByDefault(self):
+        self.preConfigAllAxis(1, 1600, 3200, 0.1,  0.1)
+    def preConfigAllAxis(self, outMode, startVel, maxVel, speedUpTime, slowDownTime, sTime = 0.01, stopVel = 100):
+        for axis in mdriver.AxisList:
+            mdriver.preConfig(axis, outMode, startVel, maxVel, speedUpTime, slowDownTime)
+    def startMove(self, axis, dir):
+        mdriver.moveByDir(axis, dir)
+    def stopMove(self, axis):
+        mdriver.decelStop(axis)
+    def xStartMovePlus(self):
+        print "plus"
+        self.startMove(mdriver.XAxis, 1)
+    def xStartMoveMinus(self):
+        print "Minus"
+        self.startMove(mdriver.XAxis, 0)
+    def yStartMovePlus(self):
+        self.startMove(mdriver.YAxis, 1)
+    def yStartMoveMinus(self):
+        self.startMove(mdriver.YAxis, 0)
+    def zStartMovePlus(self):
+        self.startMove(mdriver.ZAxis, 1)
+    def zStartMoveMinus(self):
+        self.startMove(mdriver.ZAxis, 0)
+    def xStop(self):
+        print "xstop"
+        self.stopMove(mdriver.XAxis)
+    def yStop(self):
+        self.stopMove(mdriver.YAxis)
+    def zStop(self):
+        self.stopMove(mdriver.ZAxis)
+    def initSgn(self):
+        self.m_xMinus.pressed.connect(self.xStartMoveMinus)
+        self.m_xMinus.released.connect(self.xStop)
+        self.m_xPlus.pressed.connect(self.xStartMovePlus)
+        self.m_xPlus.released.connect(self.xStop)
+        
+        self.m_yMinus.pressed.connect(self.yStartMoveMinus)
+        self.m_yMinus.released.connect(self.yStop)
+        self.m_yPlus.pressed.connect(self.yStartMovePlus)
+        self.m_yPlus.released.connect(self.yStop)
+        
+        self.m_zMinus.pressed.connect(self.zStartMoveMinus)
+        self.m_zMinus.released.connect(self.zStop)
+        self.m_zPlus.pressed.connect(self.zStartMovePlus)
+        self.m_zPlus.released.connect(self.zStop)
 if __name__ == "__main__":
     import sys
     print sys.path
