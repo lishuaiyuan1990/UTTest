@@ -5,6 +5,9 @@ XAxis = c_uint16(0)
 YAxis = c_uint16(1)
 ZAxis = c_uint16(2)
 AxisList = [XAxis, YAxis, ZAxis]
+POINT_LEN = 50
+PRECISION = 100
+
 def initMotorCard():
     ret = motorDll.d2410_board_init()
     if ret <= 0:
@@ -20,18 +23,24 @@ def getPosition(axis):
 
 def resetPosition(pos = [0, 0, 0]):
     for axis in AxisList:
-        motorDll.d2410_set_position(axis, c_long(pos[axis]))
+        motorDll.d2410_set_position(axis, c_long(pos[axis.value]))
 
 def decelStop(axis):
     motorDll.d2410_decel_stop(axis, c_double(0.1))
-
 def imdStop(axis):
     motorDll.d2410_imd_stop(axis)
 
 def emgStop():
     motorDll.d2410_emg_stop()
-    d2410_check_done(0)
+    motorDll.d2410_check_done(0)
     motorDll.d2410_emg_stop()
+
+def pMoveByDir(axis, dir, pLen = POINT_LEN):
+    if isRunning(axis):
+        return False
+    #motorDll.d2410_s_pmove(axis, pLen*dir, 0)
+    motorDll.d2410_ex_t_pmove(axis, pLen*dir, 0)
+    return True
 
 def preConfig(axis, outMode, startVel, maxVel, speedUpTime, slowDownTime, sTime = 0.01, stopVel = 100):
     if isRunning(axis):
