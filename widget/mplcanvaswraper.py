@@ -31,7 +31,6 @@ class MplCanvas(FigureCanvas):
         FigureCanvas.setSizePolicy(self,  QtGui.QSizePolicy.Expanding,  QtGui.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
         self.ax.set_xlabel("time ms", labelpad = -4)
-
         self.ax.set_ylabel("Amp")
         self.ax.set_xlim(X_MIN,  X_MAX)
         self.ax.set_ylim(Y_MIN,  Y_MAX)

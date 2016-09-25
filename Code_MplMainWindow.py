@@ -6,6 +6,7 @@ from pci import *
 import sys
 import motor.motordriver as mdriver
 print sys.path
+import numpy as np
 
 
 MAX_GATE_NUM = 6
@@ -179,7 +180,7 @@ class ProbeParaDialog(Ui_Dialog):
 class Code_MainWindow(Ui_MainWindow):
     signalXStopMove = pyqtSignal()
     signalYStopMove = pyqtSignal()
-    signalReadyForScan = pyqtSignal()
+    signalUpdateCScan = pyqtSignal()
     def __init__(self, parent = None):
         super(Code_MainWindow, self).__init__(parent)
         self.setupUi(self)
@@ -209,11 +210,12 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_probeDialog = None
         self.signalXStopMove.connect(self.xStop)
         self.signalYStopMove.connect(self.yStop)
-        #self.signalReadyForScan.connect(self.startScan)
+        #self.signalUpdateCScan.connect(self.m_probeDialog.widget.setData)
         self.timer.start(500, self)
         self.m_xScaning = False
         self.m_yScaning = False
         self.m_readyForScan = False
+        self.m_dataInGate = []
     
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
@@ -329,6 +331,11 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_xAxisPos = self.getAxisPos(mdriver.XAxis)
         self.m_yAxisPos = self.getAxisPos(mdriver.YAxis)
         self.m_zAxisPos = self.getAxisPos(mdriver.ZAxis)
+    def getCScanDataByPos(self):
+        dataSlice = np.array(self.m_mplCanvas.m_rawData[self.m_scanDataFrom:self.m_scanDataTo + 1])
+        maxData = max(np.abs(dataSlice))
+        return maxData
+    #update
     def updateAxisPos(self):
         self.updateAxisPosData()
         self.m_nowPos = {'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos} 
@@ -344,11 +351,12 @@ class Code_MainWindow(Ui_MainWindow):
         elif self.m_yScaning:
             if abs(self.m_yAxisPos - self.m_dPos['y']) < mdriver.PRECISION:
                 self.signalYStopMove.emit()
+                self.m_yScaning = False
                 self.startScanMove()
         if self.m_readyForScan:
             if self.checkScanMove():
                 return
-            if not self.checkXScanMove():
+            if self.checkXScanMove():
                 self.scanMove(mdriver.XAxis)
             else:
                 self.scanMove(mdriver.YAxis)
@@ -403,7 +411,6 @@ class Code_MainWindow(Ui_MainWindow):
     def moveToPosByAxis(self, axis, pos, moveFunc):
         if axis == mdriver.XAxis:
             self.m_xScaning = True
-            print "self.m_xScaning = True"
         axisSign = 'x'
         self.m_dPos = pos
         if axis == mdriver.YAxis:
@@ -415,38 +422,56 @@ class Code_MainWindow(Ui_MainWindow):
         moveFunc(axis, dir)
             
     def scanMove(self, axis):
+        if mdriver.isRunning(axis):
+            return
+        self.m_scanDataByRow.append(self.getCScanDataByPos())
         dir = self.m_xScanDir
+        self.m_xScanIndex += 1
         if axis == mdriver.YAxis:
+            self.m_scanData.append(self.m_scanDataByRow)
+            self.m_scanDataByRow = []
             dir = self.m_yScanDir
+            self.m_xScanIndex = 0
+            self.m_yScanIndex += 1
         self.pMove(axis, dir)
     def checkXScanMove(self):
-        if self.m_xScanTurn:
-            self.m_xScanTurn = False
-            return False
-        if abs(self.m_nowPos['x'] - self.m_scanEndPos['x']) < mdriver.PRECISION:
+        if self.m_xScanDir == 1 and abs(self.m_nowPos['x'] - self.m_scanEndPos['x']) < mdriver.PRECISION:
             self.m_xScanDir *= -1
-            self.m_xScanTurn = True
-            return True
-        return False
+            return False
+        if self.m_xScanDir == -1 and abs(self.m_nowPos['x'] - self.m_scanStartPos['x']) < mdriver.PRECISION:
+            self.m_xScanDir *= -1
+            return False
+        return True
     def checkScanMove(self):
         xDelta = abs(self.m_nowPos['x'] - self.m_scanEndPos['x'])
         yDelta = abs(self.m_nowPos['y'] - self.m_scanEndPos['y'])
         if xDelta < mdriver.PRECISION and yDelta < mdriver.PRECISION:
             self.m_readyForScan = False
+            print self.m_scanData
             return True
         return False
     def returnStartPos(self):
         self.moveToPosByAxis(mdriver.XAxis, self.m_scanStartPos, self.startMove)
     
     def startScanMove(self):
-        self.m_xScanTurn = False
         self.m_readyForScan = True
         self.m_xScanDir = 1
+        self.m_xScanIndex = 0
+        self.m_yScanIndex = 0
+        self.m_scanData = []
+        self.m_scanDataByRow = []
         if self.m_scanStartPos['x'] - self.m_scanEndPos['x'] > 0:
             self.m_xScanDir = -1
         self.m_yScanDir = 1
         if self.m_scanStartPos['x'] - self.m_scanEndPos['x'] > 0:
             self.m_yScanDir = -1
+        self.m_scanDataFrom = 0
+        self.m_scanDataTo = 0
+        if len(self.m_gateSet) > 0:
+            tFrom = self.m_gateSet[0].m_start
+            tTo = self.m_gateSet[0].m_start + self.m_gateSet[0].m_len
+            self.m_scanDataFrom = self.parseTime(tFrom)
+            self.m_scanDataTo = self.parseTime(tTo)
     
     def startScan(self):
         self.returnStartPos()
