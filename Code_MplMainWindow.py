@@ -3,6 +3,7 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from pci import *
+from copy import copy
 import sys
 import motor.motordriver as mdriver
 print sys.path
@@ -90,7 +91,7 @@ class ProbeParaDialog(Ui_Dialog):
         index = lowFreq[1]
         return [self.widget.m_fftData[index], self.reverseFreq(index)]
     def maxAmpIndex(self, nfrom, nto):
-        maxAmp = [0, 0]
+        maxAmp = [-100, 0]
         for index in range(nfrom, nto):
             if maxAmp[0] < self.widget.m_fftData[index]:
                 maxAmp[0] = self.widget.m_fftData[index]
@@ -180,7 +181,9 @@ class ProbeParaDialog(Ui_Dialog):
 class Code_MainWindow(Ui_MainWindow):
     signalXStopMove = pyqtSignal()
     signalYStopMove = pyqtSignal()
-    signalUpdateCScan = pyqtSignal()
+    signalEmgStopMove = pyqtSignal()
+    signalUpdateCScan = pyqtSignal(list)
+    clockLen = 100
     def __init__(self, parent = None):
         super(Code_MainWindow, self).__init__(parent)
         self.setupUi(self)
@@ -198,9 +201,9 @@ class Code_MainWindow(Ui_MainWindow):
         self.currentCol = -1
         self.m_clickMark = False
         self.setDelay(0)
-        step = QPoint(1, 1)
-        posFrom = QPoint(0, 0)
-        posTo = QPoint(100, 100)
+        step = 1
+        posFrom = {'x': 0, 'y': 0}
+        posTo = {'x': 100, 'y': 100}
         self.initMDriver()
         self.m_cscanWidget.setScanPos(posFrom, posTo, step)
         self.timer = QtCore.QBasicTimer()
@@ -210,13 +213,18 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_probeDialog = None
         self.signalXStopMove.connect(self.xStop)
         self.signalYStopMove.connect(self.yStop)
-        #self.signalUpdateCScan.connect(self.m_probeDialog.widget.setData)
-        self.timer.start(500, self)
+        self.signalEmgStopMove.connect(self.emgStopMove)
+        self.signalUpdateCScan.connect(self.m_cscanWidget.drawImg)
+        self.timer.start(self.clockLen, self)
         self.m_xScaning = False
         self.m_yScaning = False
         self.m_readyForScan = False
         self.m_dataInGate = []
-    
+        self.m_adDelay = 0
+        self.m_fs = 100
+    def parseTime(self, t):
+        n = (t - self.m_adDelay) * self.m_fs
+        return int(n)
     def timerEvent(self, event):
         if event.timerId() == self.timer.timerId():
             if self.m_probeDialog != None and self.m_probeDialog.exist:
@@ -322,6 +330,7 @@ class Code_MainWindow(Ui_MainWindow):
         print "setDelay: %f" % value
         
     def closeEvent(self,  event):
+        self.stopAllMove()
         result = QtGui.QMessageBox.question(self,  "Confirm Exit...", 
         "Are you sure you want to exit?",  QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
         event.ignore()
@@ -343,15 +352,23 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_yPos.setText(QString.number(self.m_yAxisPos))
         self.m_zPos.setText(QString.number(self.m_zAxisPos))
         if self.m_xScaning:
-            if abs(self.m_xAxisPos - self.m_dPos['x']) < mdriver.PRECISION:
-                self.signalXStopMove.emit()
+            if abs(self.m_xAxisPos - self.m_dPos['x']) < mdriver.SPRECISION:
+                self.signalEmgStopMove.emit()
+                #self.signalXStopMove.emit()
                 self.m_xScaning = False
                 self.m_yScaning = True
+                self.m_scanStartPos['x'] = self.m_xAxisPos
+                self.m_scanEndPos['x'] = (self.m_scanEndPos['x'] - self.m_xAxisPos) / mdriver.POINT_LEN * mdriver.POINT_LEN + self.m_xAxisPos
                 self.moveToPosByAxis(mdriver.YAxis, self.m_scanStartPos, self.startMove)
         elif self.m_yScaning:
-            if abs(self.m_yAxisPos - self.m_dPos['y']) < mdriver.PRECISION:
-                self.signalYStopMove.emit()
+            if abs(self.m_yAxisPos - self.m_dPos['y']) < mdriver.SPRECISION:
+                self.signalEmgStopMove.emit()
+                #self.signalYStopMove.emit()
                 self.m_yScaning = False
+                self.m_scanStartPos['y'] = self.m_yAxisPos
+                self.m_scanEndPos['y'] = (self.m_scanEndPos['y'] - self.m_yAxisPos) / mdriver.POINT_LEN * mdriver.POINT_LEN + self.m_yAxisPos
+                self.m_cscanWidget.setScanPos(self.m_scanStartPos, self.m_scanEndPos, mdriver.POINT_LEN)
+                self.m_cScanDrawData = np.zeros(self.m_cscanWidget.x.shape)
                 self.startScanMove()
         if self.m_readyForScan:
             if self.checkScanMove():
@@ -379,9 +396,11 @@ class Code_MainWindow(Ui_MainWindow):
     def stopMove(self, axis = None):
         mdriver.decelStop(axis)
     def stopAllMove(self):
+        self.m_readyForScan = False
         for axis in mdriver.AxisList:
             mdriver.decelStop(axis)
     def emgStopMove(self):
+        self.m_readyForScan = False
         mdriver.emgStop()
     def xStartMovePlus(self):
         print "plus"
@@ -403,10 +422,15 @@ class Code_MainWindow(Ui_MainWindow):
         self.stopMove(mdriver.YAxis)
     def zStop(self):
         self.stopMove(mdriver.ZAxis)
+    def normalizePos(self, pos):
+        for key in pos.keys():
+            pos[key] = pos[key] / mdriver.POINT_LEN * mdriver.POINT_LEN
+        return pos
+    
     def setScanStartPos(self):
-        self.m_scanStartPos = {'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos}
+        self.m_scanStartPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
     def setScanEndPos(self):
-        self.m_scanEndPos = {'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos}
+        self.m_scanEndPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
     
     def moveToPosByAxis(self, axis, pos, moveFunc):
         if axis == mdriver.XAxis:
@@ -420,26 +444,48 @@ class Code_MainWindow(Ui_MainWindow):
         if pos[axisSign] - npos < 0:
             dir = -1
         moveFunc(axis, dir)
-            
+    
+    def isMotorRunning(self):
+        if mdriver.isRunning(mdriver.XAxis) or mdriver.isRunning(mdriver.YAxis):
+            return True
+        else:
+            return False
     def scanMove(self, axis):
-        if mdriver.isRunning(axis):
+        if self.isMotorRunning():
             return
         self.m_scanDataByRow.append(self.getCScanDataByPos())
-        dir = self.m_xScanDir
-        self.m_xScanIndex += 1
-        if axis == mdriver.YAxis:
+        
+        if axis == mdriver.XAxis:
+            dir = self.m_xScanDir
+            self.m_xScanIndex += 1
+            print "XScan:",  self.m_xAxisPos, self.m_yAxisPos
+        elif axis == mdriver.YAxis:
+            self.m_xScanDir *= -1
             self.m_scanData.append(self.m_scanDataByRow)
+            drawData = copy(self.m_scanDataByRow)
+            if self.m_xScanDir == -1:
+                drawData.reverse()
+            #draw c scan image
+            cScanDrawDataT = self.m_cScanDrawData.T
+            cScanDrawDataT[self.m_yScanIndex] = drawData
+            self.m_cscanWidget.drawImg(cScanDrawDataT)        
+            print self.m_xScanIndex, self.m_yScanIndex
+            print "YScan:", self.m_xAxisPos, self.m_yAxisPos
             self.m_scanDataByRow = []
             dir = self.m_yScanDir
             self.m_xScanIndex = 0
             self.m_yScanIndex += 1
         self.pMove(axis, dir)
+    def genCScanData(self, pop = False):
+        self.m_scanData
     def checkXScanMove(self):
         if self.m_xScanDir == 1 and abs(self.m_nowPos['x'] - self.m_scanEndPos['x']) < mdriver.PRECISION:
-            self.m_xScanDir *= -1
+            print "+", self.m_nowPos['x'], self.m_scanEndPos['x']
+            #self.m_xScanDir *= -1
             return False
         if self.m_xScanDir == -1 and abs(self.m_nowPos['x'] - self.m_scanStartPos['x']) < mdriver.PRECISION:
-            self.m_xScanDir *= -1
+            print "-", self.m_nowPos['x'],  self.m_scanStartPos['x']
+            #self.m_xScanDir *= -1
             return False
         return True
     def checkScanMove(self):
@@ -450,6 +496,7 @@ class Code_MainWindow(Ui_MainWindow):
             print self.m_scanData
             return True
         return False
+    
     def returnStartPos(self):
         self.moveToPosByAxis(mdriver.XAxis, self.m_scanStartPos, self.startMove)
     

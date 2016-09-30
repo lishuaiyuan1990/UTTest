@@ -16,7 +16,7 @@ x_len = 1000
 X_INTERVAL = 0.01
 
 Y_MAX = 100
-Y_MIN = -100
+Y_MIN = 0
 X_MIN = X_INTERVAL
 X_MAX = 10
 X_TICKS = 11
@@ -106,7 +106,7 @@ class MplCanvasWraper(QtGui.QWidget):
 
     def draw(self):
         self.m_rawData = np.array(collectData())
-        self.m_rawData = (self.m_rawData - 50) * 2
+        #self.m_rawData = (self.m_rawData - 50) * 2
         self.ydata = np.array(self.m_rawData)
         self.xdata = np.linspace(self.m_xStart, self.m_xEnd, 1000)
         #self.xdata = range(X_MIN / x_resolution, X_MAX / x_resolution, X_INTERVAL/x_resolution)
@@ -153,24 +153,26 @@ class MplCanvasCWraper(QWidget):
         self.posFrom = posFrom
         self.posTo = posTo
         self.x, self.y = self.genXY()
-        xaxis = QPoint(posFrom.x(), posTo.x())
-        yaxis = QPoint(posFrom.y(), posTo.y())
+        xaxis = QPoint(posFrom['x'], posTo['x'])
+        yaxis = QPoint(posFrom['y'], posTo['y'] - self.scanStep)
         self.xaxis = xaxis
         self.yaxis = yaxis
         #self.initAxis(xaxis, yaxis)
         
     def genXY(self):
-        dx, dy = self.scanStep.x(), self.scanStep.y()
-        x, y = np.mgrid[slice(self.posFrom.x(), self.posTo.x(), dx), slice(self.posFrom.y(), self.posTo.y(), dy)]
+        dx, dy = self.scanStep, self.scanStep
+        x, y = np.mgrid[slice(self.posFrom['x'], self.posTo['x'] + dx, dx), slice(self.posFrom['y'], self.posTo['y'], dy)]
         return [x, y]
         
-    def genData(self):
-        z = np.random.random(size = self.x.shape) * 100
+    def genData(self, data):
+        #z = np.random.random(size = self.x.shape) * 100
+        z = data
+        print "ZSHAPE: ", z.shape
         return [self.x, self.y, z]
         
-    def drawImg(self):
+    def drawImg(self, data):
         z_max, z_min = Y_MAX, 0
-        [x, y, z] = self.genData()
+        [x, y, z] = self.genData(data)
         #self.fig.clear()
         #self.axes = self.fig.add_subplot(111)
         self.axes.clear()
@@ -214,8 +216,8 @@ class MplCanvasProbeWraper(QWidget):
         self.m_rawData = None
         self.m_isFFT = False
         self.m_rawDataMark = False
-        self.axes.set_ylim(-100, 100)
-        self.axes.set_yticks(np.round(np.linspace(-100, 100,  8), 2))
+        self.axes.set_ylim(Y_MIN, Y_MAX)
+        self.axes.set_yticks(np.round(np.linspace(Y_MIN, Y_MAX,  8), 2))
         self.timer.start(500, self)
     
     def setADDelay(self, delay):
@@ -233,7 +235,7 @@ class MplCanvasProbeWraper(QWidget):
         self.m_rawDataMark = True
         datay = np.abs(np.fft.fft(self.m_rawData))
         sign = max(datay)
-        datay = (datay / sign * 200 - 100)
+        datay = datay / sign * 200
         self.m_fftData = datay[0:len(datay)/2]
         
     def rawAxis(self):
@@ -274,7 +276,7 @@ class MplCanvasProbeWraper(QWidget):
         datax = n / N * self.m_fs
         datay = np.abs(np.fft.fft(self.m_rawData))
         sign = max(datay)
-        datay = (datay / sign * 200 - 100)
+        datay = (datay / sign * 200)
         self.m_fftData = datay[0:len(datay)/2]
         return [datax[0:len(datax)/2], datay[0:len(datay)/2]]
         

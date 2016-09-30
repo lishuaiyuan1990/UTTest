@@ -6,7 +6,8 @@ YAxis = c_uint16(1)
 ZAxis = c_uint16(2)
 AxisList = [XAxis, YAxis, ZAxis]
 POINT_LEN = 50
-PRECISION = 100
+SPRECISION = 50
+PRECISION = 40
 
 def initMotorCard():
     ret = motorDll.d2410_board_init()
