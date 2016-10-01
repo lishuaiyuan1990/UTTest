@@ -30,7 +30,7 @@ class MplCanvas(FigureCanvas):
         FigureCanvas.__init__(self,  self.fig)
         FigureCanvas.setSizePolicy(self,  QtGui.QSizePolicy.Expanding,  QtGui.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        self.ax.set_xlabel("time ms", labelpad = -4)
+        self.ax.set_xlabel("time us", labelpad = -4)
         self.ax.set_ylabel("Amp")
         self.ax.set_xlim(X_MIN,  X_MAX)
         self.ax.set_ylim(Y_MIN,  Y_MAX)
@@ -167,7 +167,7 @@ class MplCanvasCWraper(QWidget):
     def genData(self, data):
         #z = np.random.random(size = self.x.shape) * 100
         z = data
-        print "ZSHAPE: ", z.shape
+        #print "ZSHAPE: ", z.shape
         return [self.x, self.y, z]
         
     def drawImg(self, data):
@@ -177,8 +177,8 @@ class MplCanvasCWraper(QWidget):
         #self.axes = self.fig.add_subplot(111)
         self.axes.clear()
         self.initAxis(self.xaxis, self.yaxis)
-        self.axes.set_xlabel("time ms", labelpad = -2)
-        self.axes.set_ylabel("pos")
+        self.axes.set_xlabel("mm", labelpad = -2)
+        self.axes.set_ylabel("mm")
         if self.imgObj:
             del self.imgObj
         self.imgObj = self.axes.imshow(z, vmin = z_min, vmax = z_max, \
@@ -235,14 +235,14 @@ class MplCanvasProbeWraper(QWidget):
         self.m_rawDataMark = True
         datay = np.abs(np.fft.fft(self.m_rawData))
         sign = max(datay)
-        datay = datay / sign * 200
+        datay = datay / sign * Y_MAX
         self.m_fftData = datay[0:len(datay)/2]
         
     def rawAxis(self):
         self.m_isFFT = False
         start = self.m_adDelay
         end = self.m_adDelay + X_INTERVAL * x_len
-        self.axes.set_xlabel("ms", labelpad = -4)
+        self.axes.set_xlabel("us", labelpad = -4)
         self.axes.set_xlim(start, end)
         self.axes.set_xticks(np.round(np.linspace(start, end,  X_TICKS), 2))
         
@@ -276,7 +276,7 @@ class MplCanvasProbeWraper(QWidget):
         datax = n / N * self.m_fs
         datay = np.abs(np.fft.fft(self.m_rawData))
         sign = max(datay)
-        datay = (datay / sign * 200)
+        datay = (datay / sign * Y_MAX)
         self.m_fftData = datay[0:len(datay)/2]
         return [datax[0:len(datax)/2], datay[0:len(datay)/2]]
         
