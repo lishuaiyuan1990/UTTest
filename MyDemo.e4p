@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE Project SYSTEM "Project-5.1.dtd">
 <!-- eric project file for project MyDemo -->
-<!-- Saved: 2016-09-21, 00:52:34 -->
+<!-- Saved: 2016-10-11, 00:13:52 -->
 <!-- Copyright (C) 2016 ,  -->
 <Project version="5.1">
   <Language>en_US</Language>
@@ -16,6 +16,7 @@
   <Sources>
     <Source>Code_MplMainWindow.py</Source>
     <Source>Ui_MplMainWindow.py</Source>
+    <Source>Ui_ProbeBeam.py</Source>
     <Source>Ui_ProbePara.py</Source>
     <Source>__init__.py</Source>
     <Source>main.py</Source>
@@ -30,6 +31,7 @@
   </Sources>
   <Forms>
     <Form>MplMainWindow.ui</Form>
+    <Form>ProbeBeam.ui</Form>
     <Form>ProbePara.ui</Form>
   </Forms>
   <Translations/>

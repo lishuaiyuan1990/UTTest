@@ -15,9 +15,14 @@ COLORLIST = ["001", "010", "100"]#, "011", "110", "101"]
 GATEDIC = ["m_color", "m_start", "m_len", "m_threshold"]
 from Ui_MplMainWindow import Ui_MainWindow
 from widget.gatetablewidget import GateTableWidgetItem, Gate
-from Ui_ProbePara import Ui_Dialog
+from Ui_ProbePara import Ui_Dialog as Ui_ProbeParaDialog
+from Ui_ProbeBeam import Ui_Dialog as Ui_ProbeBeamDialog
+class ProbeBeamDialog(Ui_ProbeBeamDialog):
+    def __init__(self, parent = None):
+        super(ProbeBeamDialog, self).__init__(parent)
+        self.setupUi(self)
 
-class ProbeParaDialog(Ui_Dialog):
+class ProbeParaDialog(Ui_ProbeParaDialog):
     def __init__(self, parent = None):
         super(ProbeParaDialog, self).__init__(parent)
         self.setupUi(self)
@@ -197,6 +202,7 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_addGateBtn.clicked.connect(self.addGate)
         self.m_rmGateBtn.clicked.connect(self.rmGate)
         self.m_probePara.clicked.connect(self.fftParse)
+        self.m_probeBeamPara.clicked.connect(self.probeBeamParse)
         self.currentRow = -1
         self.currentCol = -1
         self.m_clickMark = False
@@ -222,6 +228,7 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_dataInGate = []
         self.m_adDelay = 0
         self.m_fs = 100
+        self.m_gateIndex = 0
     def parseTime(self, t):
         n = (t - self.m_adDelay) * self.m_fs
         return int(n)
@@ -235,6 +242,9 @@ class Code_MainWindow(Ui_MainWindow):
             self.updateAxisPos()
         else:
             QtGui.QWidget.timerEvent(self, event)
+    def probeBeamParse(self):
+        self.m_probeBeamDialog = ProbeBeamDialog(self)
+        self.m_probeBeamDialog.show()
     def fftParse(self):
         #self.timer.start(500, self)
         self.m_probeDialog = ProbeParaDialog(self)
@@ -310,7 +320,7 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_gateTable.setCurrentItem(gateStart)
         self.m_mplCanvas.drawGate(gate)
         self.m_gateTable.itemChanged.connect(self.syncGateInfo)
-
+        
     def genColor(self):
         for item in COLORLIST:
             color = QColor(255 * int(item[0]), 255 * int(item[1]), 255 * int(item[2]))
@@ -515,8 +525,8 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_scanDataFrom = 0
         self.m_scanDataTo = 0
         if len(self.m_gateSet) > 0:
-            tFrom = self.m_gateSet[0].m_start
-            tTo = self.m_gateSet[0].m_start + self.m_gateSet[0].m_len
+            tFrom = self.m_gateSet[self.m_gateIndex].m_start
+            tTo = self.m_gateSet[self.m_gateIndex].m_start + self.m_gateSet[self.m_gateIndex].m_len
             self.m_scanDataFrom = self.parseTime(tFrom)
             self.m_scanDataTo = self.parseTime(tTo)
     
