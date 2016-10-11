@@ -147,21 +147,23 @@ class MplCanvasCWraper(QWidget):
         self.axes.set_xticks(np.round(np.linspace(xaxis.x(),  xaxis.y(),  10), 2))
         self.axes.set_yticks(np.round(np.linspace(yaxis.x(),  yaxis.y(),  10), 2))
         self.axes.grid(False)
-        
+    def setScanAxis(self, x, y):
+        self.xAxis = x
+        self.yAxis = y
     def setScanPos(self, posFrom, posTo, step):
         self.scanStep = step
         self.posFrom = posFrom
         self.posTo = posTo
         self.x, self.y = self.genXY()
-        xaxis = QPoint(posFrom['x'], posTo['x'])
-        yaxis = QPoint(posFrom['y'], posTo['y'] - self.scanStep)
+        xaxis = QPoint(posFrom[self.xAxis], posTo[self.xAxis])
+        yaxis = QPoint(posFrom[self.yAxis], posTo[self.yAxis] - self.scanStep)
         self.xaxis = xaxis
         self.yaxis = yaxis
         #self.initAxis(xaxis, yaxis)
         
     def genXY(self):
         dx, dy = self.scanStep, self.scanStep
-        x, y = np.mgrid[slice(self.posFrom['x'], self.posTo['x'] + dx, dx), slice(self.posFrom['y'], self.posTo['y'], dy)]
+        x, y = np.mgrid[slice(self.posFrom[self.xAxis], self.posTo[self.xAxis] + dx, dx), slice(self.posFrom[self.yAxis], self.posTo[self.yAxis], dy)]
         return [x, y]
         
     def genData(self, data):
