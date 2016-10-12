@@ -246,6 +246,7 @@ class Code_MainWindow(Ui_MainWindow):
     def probeBeamParse(self):
         self.m_probeBeamDialog = ProbeBeamDialog(self)
         self.m_probeBeamDialog.show()
+        self.startScan(self.m_xzScanStartPos, self.m_xzScanEndPos ,'x', 'z', self.m_probeBeamDialog.m_xzScanWidget)
     def fftParse(self):
         #self.timer.start(500, self)
         self.m_probeDialog = ProbeParaDialog(self)
@@ -386,18 +387,19 @@ class Code_MainWindow(Ui_MainWindow):
                 self.m_yScaning = False
                 self.m_scanStartPos[y] = yAxisPos
                 self.m_scanEndPos[y] = (self.m_scanEndPos[y] - yAxisPos) / mdriver.POINT_LEN * mdriver.POINT_LEN + yAxisPos
-                self.m_cscanWidget.setScanAxis(x, y)
-                self.m_cscanWidget.setScanPos(self.m_scanStartPos, self.m_scanEndPos, mdriver.POINT_LEN)
-                self.m_cScanDrawData = np.zeros(self.m_cscanWidget.x.shape)
+                self.m_scanWidget.setScanAxis(x, y)
+                self.m_scanWidget.setScanPos(self.m_scanStartPos, self.m_scanEndPos, mdriver.POINT_LEN)
+                self.m_cScanDrawData = np.zeros(self.m_scanWidget.x.shape)
                 self.startScanMove()
         if self.m_readyForScan:
             x, y = self.m_scanXAxis, self.m_scanYAxis
             if self.checkScanMove():
+                
                 return
             if self.checkXScanMove():
-                self.scanMove(x, self.m_cscanWidget)
+                self.scanMove(x)
             else:
-                self.scanMove(y, self.m_cscanWidget)
+                self.scanMove(y)
     def initMDriver(self):
         mdriver.initMotorCard()
         self.preConfigAllAxisByDefault()
@@ -453,6 +455,17 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_scanStartPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
     def setScanEndPos(self):
         self.m_scanEndPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
+    
+    def setXZScanStartPos(self):
+        self.m_xzScanStartPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
+    def setXZScanEndPos(self):
+        self.m_xzScanEndPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
+    def setYZScanStartPos(self):
+        self.m_yzScanStartPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
+    def setYZScanEndPos(self):
+        self.m_yzScanEndPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
+    
+    
     def parseAxisName(self, axis):
         if axis == 'x':
             axis = mdriver.XAxis
@@ -480,7 +493,7 @@ class Code_MainWindow(Ui_MainWindow):
             return True
         else:
             return False
-    def scanMove(self, axis, targetWidget):
+    def scanMove(self, axis):
         if self.isMotorRunning():
             return
         x = self.m_scanXAxis
@@ -500,7 +513,7 @@ class Code_MainWindow(Ui_MainWindow):
             #draw c scan image
             cScanDrawDataT = self.m_cScanDrawData.T
             cScanDrawDataT[self.m_yScanIndex] = drawData
-            targetWidget.drawImg(cScanDrawDataT)        
+            self.m_scanWidget.drawImg(cScanDrawDataT)        
             print self.m_xScanIndex, self.m_yScanIndex
             print "YScan:", self.m_nowPos[x], self.m_nowPos[y]
             self.m_scanDataByRow = []
@@ -555,10 +568,22 @@ class Code_MainWindow(Ui_MainWindow):
             tTo = self.m_gateSet[self.m_gateIndex].m_start + self.m_gateSet[self.m_gateIndex].m_len
             self.m_scanDataFrom = self.parseTime(tFrom)
             self.m_scanDataTo = self.parseTime(tTo)
-    
-    def startScan(self):
-        self.m_scanXAxis = 'y'
-        self.m_scanYAxis = 'z'
+    def setScanAxis(self, x, y):
+        self.m_scanXAxis = x
+        self.m_scanYAxis = y
+        print self.m_scanXAxis, self.m_scanYAxis
+    def setScanWidget(self, widget):
+        if widget == None:
+            widget = self.m_cscanWidget
+        self.m_scanWidget = widget
+    def startCScan(self):
+        self.startScan(self.m_scanStartPos, self.m_scanEndPos,'x', 'y')
+        
+    def startScan(self, startPos, endPos, x = 'x', y = 'y', widget = None):
+        self.m_scanStartPos = startPos
+        self.m_scanEndPos = endPos
+        self.setScanAxis(x, y)
+        self.setScanWidget(widget)
         self.returnStartPos()
     def initSgn(self):
         self.m_xMinus.pressed.connect(self.xStartMoveMinus)
@@ -578,9 +603,15 @@ class Code_MainWindow(Ui_MainWindow):
         
         self.m_setStartPos.clicked.connect(self.setScanStartPos)
         self.m_setEndPos.clicked.connect(self.setScanEndPos)
-        self.m_startScan.clicked.connect(self.startScan)
+        self.m_startScan.clicked.connect(self.startCScan)
         self.m_emgStop.clicked.connect(self.emgStopMove)
         self.m_stop.clicked.connect(self.stopAllMove)
+        
+        self.m_xzStartPos.clicked.connect(self.setXZScanStartPos)
+        self.m_yzStartPos.clicked.connect(self.setYZScanStartPos)
+        self.m_xzEndPos.clicked.connect(self.setXZScanEndPos)
+        self.m_yzEndPos.clicked.connect(self.setYZScanEndPos)
+        
 if __name__ == "__main__":
     import sys
     print sys.path
