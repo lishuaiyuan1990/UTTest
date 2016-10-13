@@ -109,7 +109,7 @@ class ProbeParaDialog(Ui_ProbeParaDialog):
             return False
         self.m_maxAmp = self.maxAmpIndex(nfrom, nto)
         
-        ampBy = self.m_maxAmp[0] * 0.5
+        ampBy = self.m_maxAmp[0] * 0.5#
         self.m_lowFreqBy6 = self.findFreqAmpIndex(ampBy, self.m_maxAmp[1], nfrom)
         self.m_highFreqBy6 = self.findFreqAmpIndex(ampBy, self.m_maxAmp[1], nto)
         
@@ -225,6 +225,7 @@ class Code_MainWindow(Ui_MainWindow):
         self.timer.start(self.clockLen, self)
         self.m_xScaning = False
         self.m_yScaning = False
+        self.m_idleMoving = False
         self.m_readyForScan = False
         self.m_dataInGate = []
         self.m_adDelay = 0
@@ -243,10 +244,7 @@ class Code_MainWindow(Ui_MainWindow):
             self.updateAxisPos()
         else:
             QtGui.QWidget.timerEvent(self, event)
-    def probeBeamParse(self):
-        self.m_probeBeamDialog = ProbeBeamDialog(self)
-        self.m_probeBeamDialog.show()
-        self.startScan(self.m_xzScanStartPos, self.m_xzScanEndPos ,'x', 'z', self.m_probeBeamDialog.m_xzScanWidget)
+    
     def fftParse(self):
         #self.timer.start(500, self)
         self.m_probeDialog = ProbeParaDialog(self)
@@ -367,12 +365,19 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_xPos.setText(QString.number(self.m_xAxisPos))
         self.m_yPos.setText(QString.number(self.m_yAxisPos))
         self.m_zPos.setText(QString.number(self.m_zAxisPos))
-        if self.m_xScaning:
+        if self.m_idleMoving:
+            x, z = self.m_scanXAxis, self.m_idleAxis
+            if abs(self.m_nowPos[z] - self.m_dPos[z]) < mdriver.SPRECISION:
+                self.signalEmgStopMove.emit()
+                self.m_idleMoving = False
+                self.m_xScaning = True
+                self.m_yScaning = False
+                self.moveToPosByAxis(x, self.m_scanStartPos, self.startMove)
+        elif self.m_xScaning:
             x, y = self.m_scanXAxis, self.m_scanYAxis
             print self.m_nowPos[x], self.m_dPos[x]
             if abs(self.m_nowPos[x] - self.m_dPos[x]) < mdriver.SPRECISION:
                 self.signalEmgStopMove.emit()
-                #self.signalXStopMove.emit()
                 self.m_xScaning = False
                 self.m_yScaning = True
                 self.m_scanStartPos[x] = self.m_nowPos[x]
@@ -394,7 +399,7 @@ class Code_MainWindow(Ui_MainWindow):
         if self.m_readyForScan:
             x, y = self.m_scanXAxis, self.m_scanYAxis
             if self.checkScanMove():
-                
+                self.restartScan()
                 return
             if self.checkXScanMove():
                 self.scanMove(x)
@@ -475,12 +480,12 @@ class Code_MainWindow(Ui_MainWindow):
             axis = mdriver.ZAxis
         return axis
     def moveToPosByAxis(self, axis, pos, moveFunc):
+        if axis == self.m_idleAxis:
+            self.m_idleMoving = True
         if axis == self.m_scanXAxis:
             self.m_xScaning = True
-        axisSign = self.m_scanXAxis
+        axisSign = axis
         self.m_dPos = pos
-        if axis == self.m_scanYAxis:
-            axisSign = self.m_scanYAxis
         axis = self.parseAxisName(axis)
         npos = self.m_nowPos[axisSign]
         dir = 1
@@ -521,6 +526,32 @@ class Code_MainWindow(Ui_MainWindow):
             self.m_xScanIndex = 0
             self.m_yScanIndex += 1
         self.pMove(axis, dir)
+        
+    def calFocalDistanceAndLength(self, rawData, db = -3):
+        cScanDrawDataT = self.m_cScanDrawData.T
+        focalList = cScanDrawDataT.argmax(0)
+        length = len(focalList)
+        maxData = np.max(focalList)
+        index = np.argmax(focalList)
+        indexFar = index
+        indexNear = index
+        amp = 10 ** (db / 20.0) * maxData
+        for i in range(0, index):
+            if focalList[i] >= amp:
+                indexNear = i
+                break
+        for i in range(index, length):
+            if focalList[i] <= amp:
+                indexFar = i
+                break
+        startPos = self.m_scanStartPos[self.m_scanXAxis]
+        endPos = self.m_scanEndPos[self.m_scanYAxis]
+        if startPos > endPos:
+            self.m_focalPos = startPos - index * mdriver.POINT_LEN
+        else:
+            self.m_focalPos = startPos + index * mdriver.POINT_LEN
+        self.m_focalLength = (indexFar - indexNear) * mdriver.POINT_LEN 
+        
     def genCScanData(self, pop = False):
         self.m_scanData
     def checkXScanMove(self):
@@ -546,7 +577,10 @@ class Code_MainWindow(Ui_MainWindow):
         return False
     
     def returnStartPos(self):
-        self.moveToPosByAxis(self.m_scanXAxis, self.m_scanStartPos, self.startMove)
+        if abs(self.m_scanStartPos[self.m_idleAxis] - self.m_scanEndPos[self.m_idleAxis]) > mdriver.PRECISION:
+            self.moveToPosByAxis(self.m_idleAxis, self.m_scanStartPos, self.startMove)
+        else:
+            self.moveToPosByAxis(self.m_scanXAxis, self.m_scanStartPos, self.startMove)
     
     def startScanMove(self):
         x = self.m_scanXAxis
@@ -571,13 +605,34 @@ class Code_MainWindow(Ui_MainWindow):
     def setScanAxis(self, x, y):
         self.m_scanXAxis = x
         self.m_scanYAxis = y
+        axis = ['x', 'y', 'z']
+        axis.remove(x)
+        axis.remove(y)
+        self.m_idleAxis  = axis.pop()
         print self.m_scanXAxis, self.m_scanYAxis
     def setScanWidget(self, widget):
         if widget == None:
             widget = self.m_cscanWidget
         self.m_scanWidget = widget
+    def probeBeamParse(self):
+        self.m_probeBeamDialog = ProbeBeamDialog(self)
+        self.m_probeBeamDialog.show()
+        self.m_xyScanStartPos = {'x': 0, 'y':0, 'z':0}
+        self.m_xyScanEndPos = {'x': 0, 'y':0, 'z':0}
+        self.m_scanStartPosStack = [self.m_xzScanStartPos, self.m_yzScanStartPos, self.m_xyScanStartPos]
+        self.m_scanEndPosStack = [self.m_xzScanEndPos, self.m_yzScanEndPos, self.m_xyScanEndPos]
+        self.m_scanWidgetStack = [self.m_probeBeamDialog.m_xzScanWidget, self.m_probeBeamDialog.m_yzScanWidget, self.m_probeBeamDialog.m_xyScanWidget]
+        self.m_scanAxisStack = [('x', 'z'), ('y', 'z'), ('x', 'y')]
+        x, y = self.m_scanAxisStack.pop(0)
+        self.startScan(self.m_scanStartPosStack.pop(0), self.m_scanEndPosStack.pop(0) , x, y, self.m_scanWidgetStack.pop(0))
+
     def startCScan(self):
-        self.startScan(self.m_scanStartPos, self.m_scanEndPos,'x', 'y')
+        self.m_scanStartPosStack = [self.m_scanStartPos]
+        self.m_scanEndPosStack = [self.m_scanEndPos]
+        self.m_scanWidgetStack = [self.m_cscanWidget]
+        self.m_scanAxisStack = [('x', 'y')]
+        x, y = self.m_scanAxisStack.pop(0)
+        self.startScan(self.m_scanStartPosStack.pop(0), self.m_scanEndPosStack.pop(0), x, y, self.m_scanWidgetStack.pop(0))
         
     def startScan(self, startPos, endPos, x = 'x', y = 'y', widget = None):
         self.m_scanStartPos = startPos
@@ -585,6 +640,11 @@ class Code_MainWindow(Ui_MainWindow):
         self.setScanAxis(x, y)
         self.setScanWidget(widget)
         self.returnStartPos()
+    def restartScan(self):
+        if len(self.m_scanStartPosStack) == 0:
+            return
+        x, y = self.m_scanAxisStack.pop(0)
+        self.startScan(self.m_scanStartPosStack.pop(0), self.m_scanEndPosStack.pop(0), x, y, self.m_scanWidgetStack.pop(0))
     def initSgn(self):
         self.m_xMinus.pressed.connect(self.xStartMoveMinus)
         self.m_xMinus.released.connect(self.xStop)
