@@ -163,7 +163,15 @@ class MplCanvasCWraper(QWidget):
         
     def genXY(self):
         dx, dy = self.scanStep, self.scanStep
-        x, y = np.mgrid[slice(self.posFrom[self.xAxis], self.posTo[self.xAxis] + dx, dx), slice(self.posFrom[self.yAxis], self.posTo[self.yAxis], dy)]
+        if self.posFrom[self.xAxis] - self.posTo[self.xAxis] < 0:
+            xData = slice(self.posFrom[self.xAxis], self.posTo[self.xAxis] + dx, dx)
+        elif self.posFrom[self.xAxis] - self.posTo[self.xAxis] > 0:
+            xData = slice(self.posTo[self.xAxis], self.posFrom[self.xAxis] + dx, dx)
+        if self.posFrom[self.yAxis] - self.posTo[self.yAxis] < 0:
+            yData = slice(self.posFrom[self.yAxis], self.posTo[self.yAxis], dy)
+        elif self.posFrom[self.yAxis] - self.posTo[self.yAxis] > 0:
+            yData = slice(self.posTo[self.yAxis], self.posFrom[self.yAxis], dy)
+        x, y = np.mgrid[xData, yData]
         return [x, y]
         
     def genData(self, data):

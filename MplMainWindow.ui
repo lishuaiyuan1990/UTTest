@@ -203,7 +203,7 @@
     <property name="title">
      <string>运动控制</string>
     </property>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -338,16 +338,16 @@
           <item>
            <layout class="QVBoxLayout" name="verticalLayout_9">
             <item>
-             <widget class="QPushButton" name="m_yzStartPos">
+             <widget class="QPushButton" name="m_xyStartPos">
               <property name="text">
-               <string>Y-Z扫查起点</string>
+               <string>X-Y扫查起点</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="m_yzEndPos">
+             <widget class="QPushButton" name="m_xyEndPos">
               <property name="text">
-               <string>Y-Z扫查终点</string>
+               <string>X-Y扫查终点</string>
               </property>
              </widget>
             </item>

@@ -8,8 +8,9 @@ import sys
 import motor.motordriver as mdriver
 print sys.path
 import numpy as np
+import math
 
-
+V_WATER = 1.5
 MAX_GATE_NUM = 6
 COLORLIST = ["001", "010", "100"]#, "011", "110", "101"]
 GATEDIC = ["m_color", "m_start", "m_len", "m_threshold"]
@@ -21,6 +22,7 @@ class ProbeBeamDialog(Ui_ProbeBeamDialog):
     def __init__(self, parent = None):
         super(ProbeBeamDialog, self).__init__(parent)
         self.setupUi(self)
+    
 
 class ProbeParaDialog(Ui_ProbeParaDialog):
     def __init__(self, parent = None):
@@ -259,6 +261,7 @@ class Code_MainWindow(Ui_MainWindow):
     def setCurrentPos(self, row, col):
         self.currentRow = row
         self.currentCol = col
+        self.m_gateIndex = row
         
     def rmGate(self):
         if not (len(self.m_gateSet) > 0 and len(self.m_colorSet) > 0 and self.m_gateTable.rowCount() > 0):
@@ -355,8 +358,12 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_yAxisPos = self.getAxisPos(mdriver.YAxis)
         self.m_zAxisPos = self.getAxisPos(mdriver.ZAxis)
     def getCScanDataByPos(self):
-        dataSlice = np.array(self.m_mplCanvas.m_rawData[self.m_scanDataFrom:self.m_scanDataTo + 1])
-        maxData = max(np.abs(dataSlice))
+        dataSlice = np.abs(np.array(self.m_mplCanvas.m_rawData[self.m_scanDataFrom:self.m_scanDataTo + 1]))
+        maxData = max(dataSlice)
+        index = self.m_scanTimes - 1 - len(self.m_scanAxisStack)
+        if maxData > self.m_scanMaxAmpPos[index][0]:
+            self.m_scanMaxAmpPos[index][0] = maxData
+            self.m_scanMaxAmpPos[index][1] = self.m_scanDataFrom + dataSlice.argmax()
         return maxData
     #update
     def updateAxisPos(self):
@@ -367,6 +374,7 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_zPos.setText(QString.number(self.m_zAxisPos))
         if self.m_idleMoving:
             x, z = self.m_scanXAxis, self.m_idleAxis
+            print "m_idleMoving", self.m_nowPos[z], self.m_dPos[z]
             if abs(self.m_nowPos[z] - self.m_dPos[z]) < mdriver.SPRECISION:
                 self.signalEmgStopMove.emit()
                 self.m_idleMoving = False
@@ -375,7 +383,6 @@ class Code_MainWindow(Ui_MainWindow):
                 self.moveToPosByAxis(x, self.m_scanStartPos, self.startMove)
         elif self.m_xScaning:
             x, y = self.m_scanXAxis, self.m_scanYAxis
-            print self.m_nowPos[x], self.m_dPos[x]
             if abs(self.m_nowPos[x] - self.m_dPos[x]) < mdriver.SPRECISION:
                 self.signalEmgStopMove.emit()
                 self.m_xScaning = False
@@ -384,22 +391,19 @@ class Code_MainWindow(Ui_MainWindow):
                 self.m_scanEndPos[x] = (self.m_scanEndPos[x] - self.m_nowPos[x]) / mdriver.POINT_LEN * mdriver.POINT_LEN + self.m_nowPos[x]
                 self.moveToPosByAxis(y, self.m_scanStartPos, self.startMove)
         elif self.m_yScaning:
-            x, y = self.m_scanXAxis, self.m_scanYAxis
             yAxisPos = self.m_nowPos[self.m_scanYAxis]
             if abs(yAxisPos - self.m_dPos[self.m_scanYAxis]) < mdriver.SPRECISION:
                 self.signalEmgStopMove.emit()
                 #self.signalYStopMove.emit()
                 self.m_yScaning = False
-                self.m_scanStartPos[y] = yAxisPos
-                self.m_scanEndPos[y] = (self.m_scanEndPos[y] - yAxisPos) / mdriver.POINT_LEN * mdriver.POINT_LEN + yAxisPos
-                self.m_scanWidget.setScanAxis(x, y)
-                self.m_scanWidget.setScanPos(self.m_scanStartPos, self.m_scanEndPos, mdriver.POINT_LEN)
-                self.m_cScanDrawData = np.zeros(self.m_scanWidget.x.shape)
+                
                 self.startScanMove()
         if self.m_readyForScan:
             x, y = self.m_scanXAxis, self.m_scanYAxis
             if self.checkScanMove():
-                self.restartScan()
+                if self.m_scanTimes == 3:
+                    self.needCalBeamScanZ()
+                    self.restartScan()
                 return
             if self.checkXScanMove():
                 self.scanMove(x)
@@ -417,6 +421,7 @@ class Code_MainWindow(Ui_MainWindow):
         for axis in mdriver.AxisList:
             mdriver.preConfig(axis, outMode, startVel, maxVel, speedUpTime, slowDownTime)
     def startMove(self, axis, dir):
+        print "startMove: ", axis
         mdriver.moveByDir(axis, dir)
 
     def pMove(self, axis, dir):
@@ -465,11 +470,10 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_xzScanStartPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
     def setXZScanEndPos(self):
         self.m_xzScanEndPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
-    def setYZScanStartPos(self):
-        self.m_yzScanStartPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
-    def setYZScanEndPos(self):
-        self.m_yzScanEndPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
-    
+    def setXYScanStartPos(self):
+        self.m_xyScanStartPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
+    def setXYScanEndPos(self):
+        self.m_xyScanEndPos = self.normalizePos({'x':self.m_xAxisPos, 'y':self.m_yAxisPos, 'z':self.m_zAxisPos})
     
     def parseAxisName(self, axis):
         if axis == 'x':
@@ -484,6 +488,8 @@ class Code_MainWindow(Ui_MainWindow):
             self.m_idleMoving = True
         if axis == self.m_scanXAxis:
             self.m_xScaning = True
+        if axis == self.m_scanYAxis:
+            self.m_yScaning = True
         axisSign = axis
         self.m_dPos = pos
         axis = self.parseAxisName(axis)
@@ -498,6 +504,17 @@ class Code_MainWindow(Ui_MainWindow):
             return True
         else:
             return False
+    def adjustScanRect(self):
+        x, y = self.m_scanXAxis, self.m_scanYAxis
+        if self.m_scanStartPos[x] > self.m_scanEndPos[x]:
+            tmp = self.m_scanStartPos[x]
+            self.m_scanStartPos[x] = self.m_scanEndPos[x]
+            self.m_scanEndPos[x] = tmp
+        if self.m_scanStartPos[y] > self.m_scanEndPos[y]:
+            tmp = self.m_scanStartPos[y]
+            self.m_scanStartPos[y] = self.m_scanEndPos[y]
+            self.m_scanEndPos[y] = tmp
+            self.m_scanEndPos[y] = tmp
     def scanMove(self, axis):
         if self.isMotorRunning():
             return
@@ -507,9 +524,10 @@ class Code_MainWindow(Ui_MainWindow):
         
         if axis == self.m_scanXAxis:
             dir = self.m_xScanDir
+            print "XDir: ",  dir
             self.m_xScanIndex += 1
-            print "XScan:",  self.m_nowPos[x], self.m_nowPos[y]
         elif axis == self.m_scanYAxis:
+            print "self.m_xScanDir *= -1"
             self.m_xScanDir *= -1
             self.m_scanData.append(self.m_scanDataByRow)
             drawData = copy(self.m_scanDataByRow)
@@ -526,10 +544,75 @@ class Code_MainWindow(Ui_MainWindow):
             self.m_xScanIndex = 0
             self.m_yScanIndex += 1
         self.pMove(axis, dir)
+    def setBeamParaUi(self):
+        self.m_probeBeamDialog.m_focalDisSBD.setValue(self.m_focalDis)
+        self.m_probeBeamDialog.m_focalLengthSBD.setValue(self.m_focalLength)
+        self.m_probeBeamDialog.m_focalWidthXSBD.setValue(self.m_focalWidthByX_3)
+        self.m_probeBeamDialog.m_focalWidthYSBD.setValue(self.m_focalWidthByY_3)
+        self.m_probeBeamDialog.m_beamAngleXSBD.setValue(self.m_beamAngleByX)
+        self.m_probeBeamDialog.m_beamAngleYSBD.setValue(self.m_beamAngleByY)
         
-    def calFocalDistanceAndLength(self, rawData, db = -3):
+        self.m_probeBeamDialog.m_beamWidth3XSBD.setValue(self.m_focalWidthByX_3)
+        self.m_probeBeamDialog.m_beamWidth6XSBD.setValue(self.m_focalWidthByX_6)
+        self.m_probeBeamDialog.m_beamWidth12XSBD.setValue(self.m_focalWidthByX_12)
+        self.m_probeBeamDialog.m_beamWidth3YSBD.setValue(self.m_focalWidthByY_3)
+        self.m_probeBeamDialog.m_beamWidth6YSBD.setValue(self.m_focalWidthByY_6)
+        self.m_probeBeamDialog.m_beamWidth12YSBD.setValue(self.m_focalWidthByY_12)
+        
+    def calMatMaxByAxis(self, mat, axis = 1):
+        tmpMat = copy(mat)
+        #col
+        if axis == 0:
+            tmpMat = tmpMat.T
+        indexMax = tmpMat.argmax()
+        shape = tmpMat.shape
+        row = indexMax / shape[1]
+        return tmpMat[row]
+    
+    def calWidthByDB(self, dataList, db = -3):
+        maxData = np.max(dataList)
+        index = np.argmax(dataList)
+        indexFar = index
+        indexNear = index
+        length = len(dataList)
+        amp = 10 ** (db / 20.0) * maxData
+        for i in range(0, index):
+            if dataList[i] >= amp:
+                indexNear = i
+                break
+        for i in range(index, length):
+            if dataList[i] <= amp:
+                indexFar = i
+                break
+        return abs(indexFar - indexNear)
+    
+    def calBeamDivergence(self):
+        self.m_focalEndWidthByX_3, self.m_focalEndWidthByY_3 = self.calFocalWidth()[0].values()
+        deltaZ = self.m_focalPosFar - self.m_focalPos
+        deltaX = abs(self.m_focalWidthByX_3 - self.m_focalEndWidthByX_3)
+        deltaY = abs(self.m_focalWidthByY_3 - self.m_focalEndWidthByY_3)
+        self.m_beamAngleByX = math.atan(deltaX / (2 * deltaZ))
+        self.m_beamAngleByY = math.atan(deltaY / (2 * deltaZ))
+        self.calFocalDis()
+    def calFocalWidth(self, dbList = [-3]):
         cScanDrawDataT = self.m_cScanDrawData.T
-        focalList = cScanDrawDataT.argmax(0)
+        focalRow = self.calMatMaxByAxis(cScanDrawDataT, 1)
+        focalCol = self.calMatMaxByAxis(cScanDrawDataT, 0)
+        retDirct = []
+        for db in dbList:
+            rowWidth = self.calWidthByDB(focalRow, db)
+            colWidth = self.calWidthByDB(focalCol, db)
+            retDirct.append({'rowWidth': rowWidth, 'colWidth': colWidth})
+        return retDirct
+    
+    def calFocalDis(self, index = 1):
+        transTime = self.m_scanMaxAmpPos[index][1] / self.m_fs + self.m_adDelay
+        self.m_focalDis = V_WATER * transTime
+        
+    
+    def calFocalDistanceAndLength(self, db = -3):
+        cScanDrawDataT = self.m_cScanDrawData.T
+        focalList = self.calMatMaxByAxis(cScanDrawDataT)
         length = len(focalList)
         maxData = np.max(focalList)
         index = np.argmax(focalList)
@@ -550,10 +633,13 @@ class Code_MainWindow(Ui_MainWindow):
             self.m_focalPos = startPos - index * mdriver.POINT_LEN
         else:
             self.m_focalPos = startPos + index * mdriver.POINT_LEN
+        self.m_focalPosFar = self.m_focalPos + abs(indexFar - index) * mdriver.POINT_LEN
         self.m_focalLength = (indexFar - indexNear) * mdriver.POINT_LEN 
-        
-    def genCScanData(self, pop = False):
-        self.m_scanData
+        self.m_focalPos = 400
+        self.m_focalPosFar = 600
+        self.syncBeamScanZAxis(self.m_focalPos, self.m_focalPosFar)
+        return
+
     def checkXScanMove(self):
         x = self.m_scanXAxis
         if self.m_xScanDir == 1 and abs(self.m_nowPos[x] - self.m_scanEndPos[x]) < mdriver.PRECISION:
@@ -577,13 +663,24 @@ class Code_MainWindow(Ui_MainWindow):
         return False
     
     def returnStartPos(self):
-        if abs(self.m_scanStartPos[self.m_idleAxis] - self.m_scanEndPos[self.m_idleAxis]) > mdriver.PRECISION:
+        print "returnStartPos", self.m_scanStartPos[self.m_idleAxis] ,self.m_zAxisPos
+        if abs(self.m_scanStartPos[self.m_idleAxis] - self.m_nowPos[self.m_idleAxis]) > mdriver.PRECISION:
             self.moveToPosByAxis(self.m_idleAxis, self.m_scanStartPos, self.startMove)
-        else:
+        elif abs(self.m_scanStartPos[self.m_scanXAxis] - self.m_nowPos[self.m_scanXAxis]) > mdriver.PRECISION:
             self.moveToPosByAxis(self.m_scanXAxis, self.m_scanStartPos, self.startMove)
-    
+        elif abs(self.m_scanStartPos[self.m_scanYAxis] - self.m_nowPos[self.m_scanYAxis]) > mdriver.PRECISION:
+            self.moveToPosByAxis(self.m_scanYAxis, self.m_scanStartPos, self.startMove)
+        else:
+            self.startScanMove()
     def startScanMove(self):
-        x = self.m_scanXAxis
+        x, y = self.m_scanXAxis, self.m_scanYAxis
+        self.m_scanStartPos[x] = self.m_nowPos[x]
+        self.m_scanEndPos[x] = (self.m_scanEndPos[x] - self.m_nowPos[x]) / mdriver.POINT_LEN * mdriver.POINT_LEN + self.m_nowPos[x]
+        self.m_scanStartPos[y] = self.m_nowPos[y]
+        self.m_scanEndPos[y] = (self.m_scanEndPos[y] - self.m_nowPos[y]) / mdriver.POINT_LEN * mdriver.POINT_LEN + self.m_nowPos[y]
+        self.m_scanWidget.setScanAxis(x, y)
+        self.m_scanWidget.setScanPos(self.m_scanStartPos, self.m_scanEndPos, mdriver.POINT_LEN)
+        self.m_cScanDrawData = np.zeros(self.m_scanWidget.x.shape)
         self.m_readyForScan = True
         self.m_xScanDir = 1
         self.m_xScanIndex = 0
@@ -595,6 +692,7 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_yScanDir = 1
         if self.m_scanStartPos[x] - self.m_scanEndPos[x] > 0:
             self.m_yScanDir = -1
+        print "self.m_xScanDir: ", self.m_xScanDir
         self.m_scanDataFrom = 0
         self.m_scanDataTo = 0
         if len(self.m_gateSet) > 0:
@@ -614,19 +712,33 @@ class Code_MainWindow(Ui_MainWindow):
         if widget == None:
             widget = self.m_cscanWidget
         self.m_scanWidget = widget
+    def syncBeamScanZAxis(self, zFocal, zFocalFar):
+        self.m_xyScanStartPosByFocal['z'] = zFocal
+        self.m_xyScanEndPosByFocal['z'] = zFocal
+        self.m_xyScanStartPosByFocalEnd['z'] = zFocalFar
+        self.m_xyScanEndPosByFocalEnd['z'] = zFocalFar
+        
     def probeBeamParse(self):
         self.m_probeBeamDialog = ProbeBeamDialog(self)
         self.m_probeBeamDialog.show()
-        self.m_xyScanStartPos = {'x': 0, 'y':0, 'z':0}
-        self.m_xyScanEndPos = {'x': 0, 'y':0, 'z':0}
-        self.m_scanStartPosStack = [self.m_xzScanStartPos, self.m_yzScanStartPos, self.m_xyScanStartPos]
-        self.m_scanEndPosStack = [self.m_xzScanEndPos, self.m_yzScanEndPos, self.m_xyScanEndPos]
+        startX, startY = self.m_xyScanStartPos['x'], self.m_xyScanStartPos['y']
+        endX, endY = self.m_xyScanEndPos['x'], self.m_xyScanEndPos['y']
+        self.m_xyScanStartPosByFocal = {'x': startX, 'y':startY, 'z':0}
+        self.m_xyScanEndPosByFocal = {'x': endX, 'y':endY, 'z':0}
+        self.m_xyScanStartPosByFocalEnd = {'x': startX, 'y':startY, 'z':0}
+        self.m_xyScanEndPosByFocalEnd = {'x': endX, 'y':endY, 'z':0}
+        self.m_scanTimes = 3
+        self.m_scanMaxAmpPos = [[0, 0], [0, 0], [0, 0]]
+        self.m_scanStartPosStack = [self.m_xzScanStartPos, self.m_xyScanStartPosByFocal, self.m_xyScanStartPosByFocalEnd]
+        self.m_scanEndPosStack = [self.m_xzScanEndPos, self.m_xyScanEndPosByFocal, self.m_xyScanEndPosByFocalEnd]
         self.m_scanWidgetStack = [self.m_probeBeamDialog.m_xzScanWidget, self.m_probeBeamDialog.m_yzScanWidget, self.m_probeBeamDialog.m_xyScanWidget]
-        self.m_scanAxisStack = [('x', 'z'), ('y', 'z'), ('x', 'y')]
+        self.m_scanAxisStack = [('x', 'z'), ('x', 'y'), ('x', 'y')]
         x, y = self.m_scanAxisStack.pop(0)
         self.startScan(self.m_scanStartPosStack.pop(0), self.m_scanEndPosStack.pop(0) , x, y, self.m_scanWidgetStack.pop(0))
 
     def startCScan(self):
+        self.m_scanTimes = 1
+        self.m_scanMaxAmpPos = [[0, {}]]
         self.m_scanStartPosStack = [self.m_scanStartPos]
         self.m_scanEndPosStack = [self.m_scanEndPos]
         self.m_scanWidgetStack = [self.m_cscanWidget]
@@ -635,13 +747,26 @@ class Code_MainWindow(Ui_MainWindow):
         self.startScan(self.m_scanStartPosStack.pop(0), self.m_scanEndPosStack.pop(0), x, y, self.m_scanWidgetStack.pop(0))
         
     def startScan(self, startPos, endPos, x = 'x', y = 'y', widget = None):
+        self.signalEmgStopMove.emit()
         self.m_scanStartPos = startPos
         self.m_scanEndPos = endPos
         self.setScanAxis(x, y)
         self.setScanWidget(widget)
+        self.adjustScanRect()
         self.returnStartPos()
+    def needCalBeamScanZ(self):
+        if len(self.m_scanStartPosStack) == 2:
+            self.calFocalDistanceAndLength()
+        elif len(self.m_scanStartPosStack) == 1:
+            beamWidthList = self.calFocalWidth([-3, -6, -12])
+            self.m_focalWidthByX_3, self.m_focalWidthByY_3 = beamWidthList[0].values()
+            self.m_focalWidthByX_6, self.m_focalWidthByY_6 = beamWidthList[1].values()
+            self.m_focalWidthByX_12, self.m_focalWidthByY_12 = beamWidthList[2].values()
+        elif len(self.m_scanStartPosStack) == 0:
+            self.calBeamDivergence()
     def restartScan(self):
         if len(self.m_scanStartPosStack) == 0:
+            self.setBeamParaUi()
             return
         x, y = self.m_scanAxisStack.pop(0)
         self.startScan(self.m_scanStartPosStack.pop(0), self.m_scanEndPosStack.pop(0), x, y, self.m_scanWidgetStack.pop(0))
@@ -668,9 +793,9 @@ class Code_MainWindow(Ui_MainWindow):
         self.m_stop.clicked.connect(self.stopAllMove)
         
         self.m_xzStartPos.clicked.connect(self.setXZScanStartPos)
-        self.m_yzStartPos.clicked.connect(self.setYZScanStartPos)
+        self.m_xyStartPos.clicked.connect(self.setXYScanStartPos)
         self.m_xzEndPos.clicked.connect(self.setXZScanEndPos)
-        self.m_yzEndPos.clicked.connect(self.setYZScanEndPos)
+        self.m_xyEndPos.clicked.connect(self.setXYScanEndPos)
         
 if __name__ == "__main__":
     import sys
